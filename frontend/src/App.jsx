@@ -6,6 +6,7 @@ import CorsPage from './pages/CorsPage';
 import MassAssignmentPage from './pages/MassAssignmentPage';
 import ExceptionsPage from './pages/ExceptionsPage';
 import PromptInjectionPage from './pages/PromptInjectionPage';
+import DiffViewerPage from './pages/DiffViewerPage';
 import MonitorPage from './pages/MonitorPage';
 
 const NAV_ITEMS = [
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
   { path: '/mass-assignment', label: 'Mass Assign' },
   { path: '/exceptions', label: 'Exceptions' },
   { path: '/prompt-injection', label: 'Prompt Inj.' },
+  { path: '/diffs', label: 'Diffs' },
   { path: '/monitor', label: 'Monitor' },
 ];
 
@@ -50,6 +52,7 @@ function App() {
           <Route path="/mass-assignment" element={<MassAssignmentPage />} />
           <Route path="/exceptions" element={<ExceptionsPage />} />
           <Route path="/prompt-injection" element={<PromptInjectionPage />} />
+          <Route path="/diffs" element={<DiffViewerPage />} />
           <Route path="/monitor" element={<MonitorPage />} />
         </Routes>
       </main>
