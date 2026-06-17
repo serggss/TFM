@@ -41,6 +41,8 @@ function HomePage() {
     'jwt': '/jwt',
     'cors': '/cors',
     'mass-assignment': '/mass-assignment',
+    'exceptions': '/exceptions',
+    'prompt-injection': '/prompt-injection',
   };
 
   if (loading) {

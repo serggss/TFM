@@ -33,6 +33,18 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedHeaders("*")
                 .allowCredentials(true);
 
+        registry.addMapping("/api/exceptions/**")
+                .allowedOrigins("http://localhost:5173", "http://localhost:3000")
+                .allowedMethods("GET", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
+
+        registry.addMapping("/api/prompt-injection/**")
+                .allowedOrigins("http://localhost:5173", "http://localhost:3000")
+                .allowedMethods("GET", "POST", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
+
         registry.addMapping("/api/monitor/**")
                 .allowedOrigins("http://localhost:5173", "http://localhost:3000")
                 .allowedMethods("GET", "DELETE", "OPTIONS")

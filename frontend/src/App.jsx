@@ -4,6 +4,8 @@ import BolaPage from './pages/BolaPage';
 import JwtPage from './pages/JwtPage';
 import CorsPage from './pages/CorsPage';
 import MassAssignmentPage from './pages/MassAssignmentPage';
+import ExceptionsPage from './pages/ExceptionsPage';
+import PromptInjectionPage from './pages/PromptInjectionPage';
 import MonitorPage from './pages/MonitorPage';
 
 const NAV_ITEMS = [
@@ -12,6 +14,8 @@ const NAV_ITEMS = [
   { path: '/jwt', label: 'JWT' },
   { path: '/cors', label: 'CORS' },
   { path: '/mass-assignment', label: 'Mass Assign' },
+  { path: '/exceptions', label: 'Exceptions' },
+  { path: '/prompt-injection', label: 'Prompt Inj.' },
   { path: '/monitor', label: 'Monitor' },
 ];
 
@@ -44,6 +48,8 @@ function App() {
           <Route path="/jwt" element={<JwtPage />} />
           <Route path="/cors" element={<CorsPage />} />
           <Route path="/mass-assignment" element={<MassAssignmentPage />} />
+          <Route path="/exceptions" element={<ExceptionsPage />} />
+          <Route path="/prompt-injection" element={<PromptInjectionPage />} />
           <Route path="/monitor" element={<MonitorPage />} />
         </Routes>
       </main>

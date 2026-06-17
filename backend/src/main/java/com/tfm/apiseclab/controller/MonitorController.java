@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * API REST de la capa de observación (monitor de eventos de seguridad).
@@ -67,5 +68,10 @@ public class MonitorController {
     public ResponseEntity<String> clearEvents() {
         monitorService.clearAll();
         return ResponseEntity.ok("Eventos eliminados");
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getStats() {
+        return ResponseEntity.ok(monitorService.getStats());
     }
 }
