@@ -1,0 +1,39 @@
+# === Java / Maven ===
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+hs_err_pid*
+
+# === IDEs ===
+.idea/
+*.iml
+*.iws
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# === Node / Frontend ===
+node_modules/
+dist/
+.env
+.env.local
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === Docker ===
+docker-compose.override.yml
+
+# === H2 database files (si alguna vez se persiste a fichero) ===
+*.db
+*.mv.db
+*.trace.db

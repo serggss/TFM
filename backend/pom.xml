@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    POM del backend del laboratorio de seguridad en APIs REST.
+
+    Decisiones de diseño justificadas:
+
+    1. Spring Boot 4.1.x (parent): versión LTS vigente a junio 2026.
+       Spring Boot 3.x queda descartado porque el soporte de 3.5 termina
+       el 30/06/2026 y no tendría sentido presentar un TFM con un framework
+       sin soporte.
+
+    2. Java 21 (LTS): requerido por Spring Boot 4. Aporta virtual threads,
+       pattern matching, records, y sealed classes — todos útiles para un
+       código más legible y explicable.
+
+    3. NO se incluye spring-boot-starter-security. La autenticación y
+       autorización se implementan a mano con JJWT para que las
+       vulnerabilidades sean visibles y controlables. Si usáramos Spring
+       Security, la mayoría de los fallos que queremos demostrar estarían
+       parchados por defecto y no se podrían explicar ante el tribunal.
+
+    4. H2 en memoria: base de datos embebida que no requiere instalación.
+       Cada reinicio parte de un estado limpio y reproducible — ideal para
+       un laboratorio donde queremos datos de prueba predecibles.
+
+    5. JJWT (io.jsonwebtoken): librería estándar para JWT en Java.
+       Se divide en 3 artefactos (api, impl, jackson) siguiendo el patrón
+       de separación de interfaz/implementación. Esto permite que en el
+       estado "vulnerable" manipulemos el token sin que la librería nos
+       proteja automáticamente.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Parent: hereda configuración de Spring Boot (plugins, versiones, etc.) -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.0</version>
+        <relativePath/> <!-- Buscar en Maven Central, no en el proyecto -->
+    </parent>
+
+    <groupId>com.tfm</groupId>
+    <artifactId>api-sec-lab</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <name>API Security Lab</name>
+    <description>
+        Laboratorio educativo de vulnerabilidades en APIs REST.
+        TFM — Máster en Ciberseguridad.
+    </description>
+
+    <properties>
+        <!-- Java 21 LTS — requerido por Spring Boot 4 -->
+        <java.version>21</java.version>
+        <!-- Versión de JJWT — se centraliza aquí para las 3 dependencias -->
+        <jjwt.version>0.12.6</jjwt.version>
+    </properties>
+
+    <dependencies>
+
+        <!-- ========== SPRING BOOT STARTERS ========== -->
+
+        <!-- Web: incluye Spring MVC, Tomcat embebido, Jackson para JSON.
+             Es lo que permite crear endpoints REST con @RestController. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- JPA: incluye Hibernate como ORM + Spring Data JPA.
+             Permite definir entidades con @Entity y repositorios con JpaRepository.
+             Se eligió JPA sobre JDBC puro porque reduce boilerplate y el modelo
+             de datos es simple (pocas tablas, sin queries complejas). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- ========== BASE DE DATOS ========== -->
+
+        <!-- H2: BD relacional en memoria. scope=runtime porque solo se necesita
+             en ejecución, no en compilación (JPA abstrae el acceso). -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ========== JWT ========== -->
+
+        <!-- JJWT API: interfaz pública para crear/verificar JWT.
+             Se usa en el código fuente (scope=compile por defecto). -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+
+        <!-- JJWT Impl: implementación interna. Solo se necesita en ejecución. -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- JJWT Jackson: serialización JSON de claims con Jackson.
+             Necesario para que JJWT funcione con el Jackson que ya trae Spring. -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ========== TEST ========== -->
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Plugin de Spring Boot: permite ejecutar con 'mvn spring-boot:run'
+                 y genera un fat JAR ejecutable con 'mvn package'. -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

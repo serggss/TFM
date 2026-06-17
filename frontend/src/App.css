@@ -1,0 +1,551 @@
+/*
+ * Estilos globales del laboratorio — Tema oscuro.
+ *
+ * Se eligió un tema oscuro porque:
+ *   1. Es el estándar de facto en herramientas de ciberseguridad
+ *      (Burp Suite, Kali Linux, terminales).
+ *   2. Reduce fatiga visual en sesiones largas de pruebas.
+ *   3. Los colores de estado (rojo/naranja/verde) resaltan más
+ *      sobre fondo oscuro.
+ *
+ * Convención de colores por estado de vulnerabilidad:
+ *   - Vulnerable:  #e74c3c (rojo)    → peligro, sin protección.
+ *   - Partial:     #f39c12 (naranja) → falsa seguridad, bypass posible.
+ *   - Fixed:       #2ecc71 (verde)   → mitigación completa.
+ *
+ * No se usa ningún framework CSS (Bootstrap, Tailwind) para:
+ *   - Minimizar dependencias externas.
+ *   - Mantener el control total del diseño.
+ *   - Que el código sea auditable sin capas de abstracción.
+ */
+
+/* ============================================================
+   RESET Y VARIABLES
+   ============================================================ */
+
+:root {
+  /* Paleta principal */
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-card: #0f3460;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0b0;
+  --text-muted: #6c7293;
+  --border-color: #2a2a4a;
+
+  /* Colores de estado — semáforo de seguridad */
+  --color-vulnerable: #e74c3c;
+  --color-partial: #f39c12;
+  --color-fixed: #2ecc71;
+
+  /* Acentos */
+  --color-accent: #3498db;
+  --color-accent-hover: #2980b9;
+
+  /* Tipografía */
+  --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+  --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   LAYOUT PRINCIPAL
+   ============================================================ */
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  width: 100%;
+}
+
+/* ============================================================
+   CABECERA Y NAVEGACIÓN
+   ============================================================ */
+
+.app-header {
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+
+.logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo-icon {
+  font-size: 1.5rem;
+}
+
+.main-nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.nav-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nav-link.active {
+  color: var(--color-accent);
+  background-color: rgba(52, 152, 219, 0.15);
+}
+
+/* ============================================================
+   PIE DE PÁGINA
+   ============================================================ */
+
+.app-footer {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* ============================================================
+   COMPONENTES REUTILIZABLES
+   ============================================================ */
+
+/* Tarjeta genérica */
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Título de sección */
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.section-subtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+/* ============================================================
+   SELECTOR DE ESTADO (vulnerable / partial / fixed)
+   ============================================================ */
+
+.state-selector {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.state-btn {
+  padding: 0.6rem 1.2rem;
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.state-btn:hover {
+  border-color: var(--text-secondary);
+}
+
+.state-btn.active-vulnerable {
+  border-color: var(--color-vulnerable);
+  color: var(--color-vulnerable);
+  background-color: rgba(231, 76, 60, 0.1);
+}
+
+.state-btn.active-partial {
+  border-color: var(--color-partial);
+  color: var(--color-partial);
+  background-color: rgba(243, 156, 18, 0.1);
+}
+
+.state-btn.active-fixed {
+  border-color: var(--color-fixed);
+  color: var(--color-fixed);
+  background-color: rgba(46, 204, 113, 0.1);
+}
+
+/* ============================================================
+   PANEL DE ATAQUE
+   ============================================================ */
+
+.attack-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.attack-config {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-group select,
+.form-group input {
+  padding: 0.6rem 0.8rem;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+}
+
+.form-group select:focus,
+.form-group input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.btn-attack {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: white;
+  background-color: var(--color-accent);
+  align-self: flex-start;
+}
+
+.btn-attack:hover {
+  background-color: var(--color-accent-hover);
+}
+
+.btn-attack:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   VISOR DE RESPUESTA
+   ============================================================ */
+
+.response-viewer {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.response-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.response-status {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.response-body {
+  padding: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* ============================================================
+   VEREDICTO DEL ORÁCULO
+   ============================================================ */
+
+.verdict {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.verdict-success {
+  background-color: rgba(231, 76, 60, 0.15);
+  color: var(--color-vulnerable);
+  border: 1px solid var(--color-vulnerable);
+}
+
+.verdict-blocked {
+  background-color: rgba(46, 204, 113, 0.15);
+  color: var(--color-fixed);
+  border: 1px solid var(--color-fixed);
+}
+
+.verdict-legitimate {
+  background-color: rgba(52, 152, 219, 0.15);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+}
+
+/* ============================================================
+   CATÁLOGO DE VULNERABILIDADES (página principal)
+   ============================================================ */
+
+.vuln-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1rem;
+}
+
+.vuln-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.25rem;
+  transition: border-color 0.2s;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.vuln-card:hover {
+  border-color: var(--color-accent);
+}
+
+.vuln-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.vuln-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.vuln-badge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.vuln-badge-implemented {
+  background-color: rgba(46, 204, 113, 0.15);
+  color: var(--color-fixed);
+}
+
+.vuln-badge-pending {
+  background-color: rgba(160, 160, 176, 0.15);
+  color: var(--text-muted);
+}
+
+.vuln-refs {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-bottom: 0.5rem;
+}
+
+.vuln-card p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* ============================================================
+   TABLA DEL MONITOR
+   ============================================================ */
+
+.monitor-table-wrapper {
+  overflow-x: auto;
+}
+
+.monitor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.monitor-table th {
+  background-color: var(--bg-secondary);
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.monitor-table td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.monitor-table tr:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Badge de estado en la tabla del monitor */
+.state-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.state-badge-vulnerable {
+  background-color: rgba(231, 76, 60, 0.15);
+  color: var(--color-vulnerable);
+}
+
+.state-badge-partial {
+  background-color: rgba(243, 156, 18, 0.15);
+  color: var(--color-partial);
+}
+
+.state-badge-fixed {
+  background-color: rgba(46, 204, 113, 0.15);
+  color: var(--color-fixed);
+}
+
+/* Indicador de éxito/fallo del ataque */
+.attack-indicator {
+  font-weight: 700;
+}
+
+.attack-success {
+  color: var(--color-vulnerable);
+}
+
+.attack-failed {
+  color: var(--color-fixed);
+}
+
+/* ============================================================
+   PANEL DE EXPLICACIÓN
+   ============================================================ */
+
+.explanation-panel {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.explanation-panel h3 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.explanation-panel p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.explanation-panel code {
+  font-family: var(--font-mono);
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.85rem;
+  color: var(--color-accent);
+}
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+
+.text-vulnerable { color: var(--color-vulnerable); }
+.text-partial { color: var(--color-partial); }
+.text-fixed { color: var(--color-fixed); }
+.text-muted { color: var(--text-muted); }
+.text-accent { color: var(--color-accent); }
+
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+
+.mono { font-family: var(--font-mono); }
