@@ -7,9 +7,9 @@ Laboratorio educativo de vulnerabilidades en APIs REST con modelo de tres estado
 - Java 21 (LTS)
 - Maven 3.9+
 - Node.js 20+
-- Docker y Docker Compose (opcional, para despliegue)
+- Docker y Docker Compose (opcional)
 
-## Arranque rápido (desarrollo local)
+## Arranque rápido
 
 ### Backend
 
@@ -18,8 +18,7 @@ cd backend
 mvn spring-boot:run
 ```
 
-El backend arranca en `http://localhost:8080`.
-La consola H2 está disponible en `http://localhost:8080/h2-console` (JDBC URL: `jdbc:h2:mem:apiseclab`).
+Backend en `http://localhost:8080`. Consola H2 en `http://localhost:8080/h2-console` (JDBC URL: `jdbc:h2:mem:apiseclab`).
 
 ### Frontend
 
@@ -29,7 +28,7 @@ npm install
 npm run dev
 ```
 
-El frontend arranca en `http://localhost:5173`. Las peticiones a `/api/*` se redirigen al backend automáticamente (proxy de Vite).
+Frontend en `http://localhost:5173`.
 
 ## Arranque con Docker
 
@@ -37,44 +36,57 @@ El frontend arranca en `http://localhost:5173`. Las peticiones a `/api/*` se red
 docker-compose up --build
 ```
 
-- Frontend: `http://localhost:3000`
-- Backend API: `http://localhost:8080`
+Frontend: `http://localhost:3000` · Backend: `http://localhost:8080`
 
 ## Vulnerabilidades implementadas
 
-| # | Vulnerabilidad | Estado |
-|---|----------------|--------|
-| 1 | BOLA / IDOR | Implementada |
-| 2 | JWT mal implementado | Pendiente (Semana 2) |
-| 3 | CORS mal configurado | Pendiente (Semana 2) |
-| 4 | Mass Assignment / BOPLA | Pendiente (Semana 2) |
-| 5 | Mishandling of Exceptional Conditions | Pendiente (Semana 3) |
-| 6 | Prompt Injection en API con LLM | Pendiente (Semana 3) |
+| # | Vulnerabilidad | Estado | Semana |
+|---|----------------|--------|--------|
+| 1 | BOLA / IDOR | Implementada | 1 |
+| 2 | JWT mal implementado | Implementada | 2 |
+| 3 | CORS mal configurado | Implementada | 2 |
+| 4 | Mass Assignment / BOPLA | Implementada | 2 |
+| 5 | Mishandling of Exceptional Conditions | Pendiente | 3 |
+| 6 | Prompt Injection en API con LLM | Pendiente | 3 |
 
-## Endpoints BOLA/IDOR
+## Endpoints
 
-### Estado vulnerable
+### BOLA/IDOR (#1)
 ```
-GET /api/bola/vulnerable/accounts/{id}
-GET /api/bola/vulnerable/accounts
-```
-
-### Estado partial (bypass vía búsqueda)
-```
-GET /api/bola/partial/accounts/{id}        # protegido
-GET /api/bola/partial/accounts?ownerId=X   # BYPASS — no valida ownerId
+GET /api/bola/{state}/accounts/{id}
+GET /api/bola/{state}/accounts              # búsqueda (bypass en partial via ?ownerId=X)
 ```
 
-### Estado fixed
+### JWT (#2)
 ```
-GET /api/bola/fixed/accounts/{id}
-GET /api/bola/fixed/accounts               # ignora parámetro ownerId
+POST /api/auth/login                        # obtener token (body: username, password)
+GET  /api/auth/forge-none/{userId}          # generar token alg=none (herramienta de ataque)
+GET  /api/jwt/{state}/profile               # acceder a perfil con JWT (header: Authorization: Bearer)
 ```
+
+Usuarios: alice/password123, bob/password456, charlie/password789, admin/admin
+
+### CORS (#3)
+```
+GET /api/cors/{state}/data                  # datos sensibles con headers CORS según estado
+```
+
+Bypass partial: Origin que contenga "localhost" (ej: `https://localhost.evil.com`)
+
+### Mass Assignment (#4)
+```
+GET  /api/mass-assignment/{state}/profile/{id}
+PUT  /api/mass-assignment/{state}/profile/{id}   # actualizar perfil
+POST /api/mass-assignment/{state}/profile/{id}/reset
+```
+
+Campos protegidos: role, balance, verified, discount. Partial solo bloquea role y balance.
 
 ### Monitor
 ```
-GET /api/monitor/events
-GET /api/monitor/events?vulnerability=BOLA
+GET    /api/monitor/events
+GET    /api/monitor/events?vulnerability=BOLA
+DELETE /api/monitor/events
 ```
 
 ### Catálogo
@@ -83,12 +95,10 @@ GET /api/vulnerabilities
 GET /api/vulnerabilities/{slug}
 ```
 
-## Autenticación (Semana 1)
+## Modelo de tres estados
 
-Se simula con la cabecera `X-User-Id`. Ejemplo:
+Cada vulnerabilidad tiene tres variantes (`{state}` = vulnerable | partial | fixed):
 
-```bash
-curl -H "X-User-Id: 2" http://localhost:8080/api/bola/vulnerable/accounts/1
-```
-
-En Semana 2 se reemplaza por JWT.
+- **vulnerable**: sin protección, el ataque siempre funciona.
+- **partial**: mitigación parcial con bypass demostrable (aportación central del TFM).
+- **fixed**: mitigación completa.

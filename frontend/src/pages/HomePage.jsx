@@ -38,12 +38,9 @@ function HomePage() {
   // Solo las vulnerabilidades implementadas tienen ruta.
   const slugToRoute = {
     'bola': '/bola',
-    // Las siguientes se añadirán en semanas posteriores:
-    // 'jwt': '/jwt',
-    // 'cors': '/cors',
-    // 'mass-assignment': '/mass-assignment',
-    // 'exceptions': '/exceptions',
-    // 'prompt-injection': '/prompt-injection',
+    'jwt': '/jwt',
+    'cors': '/cors',
+    'mass-assignment': '/mass-assignment',
   };
 
   if (loading) {
