@@ -175,7 +175,7 @@ function JwtPage() {
     const t = useForged && forgedToken ? forgedToken : token;
     try {
       const res = await fetch(`/api/jwt/${state}/profile`, {
-        headers: { 'Authorization': `Bearer ${t}` },
+        headers: { 'X-Auth-Token': t },
       });
       const data = await res.json().catch(() => null);
       setResponse({ status: res.status, ok: res.ok, data });
@@ -278,7 +278,7 @@ function JwtPage() {
       <StepCard number={3} title="Enviar el token al servidor y ver el resultado" active={step >= 3} done={!!response}>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
           Envía el token al endpoint <code>/api/jwt/{state}/profile</code> en la cabecera
-          <code> Authorization: Bearer ...</code> y observa si el servidor lo acepta o rechaza.
+          <code> X-Auth-Token</code> y observa si el servidor lo acepta o rechaza.
         </p>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
@@ -296,14 +296,14 @@ function JwtPage() {
           border: '1px solid var(--border-color)', color: 'var(--text-secondary)',
         }}>
           GET /api/jwt/<strong style={{ color: 'var(--color-accent)' }}>{state}</strong>/profile<br/>
-          Authorization: Bearer <span style={{ color: useForged ? 'var(--color-vulnerable)' : 'var(--color-fixed)' }}>
+          X-Auth-Token: <span style={{ color: useForged ? 'var(--color-vulnerable)' : 'var(--color-fixed)' }}>
             {useForged ? '(token forjado)' : '(token legítimo)'}
           </span>
         </div>
         <button className="btn-attack" onClick={sendToken} disabled={loading}>
           {loading ? 'Enviando...' : 'Enviar petición'}
         </button>
-        <CurlCommand command={`curl -H "Authorization: Bearer ${(useForged && forgedToken ? forgedToken : token) || '<token>'}" \\\n  http://localhost:8080/api/jwt/${state}/profile`} />
+        <CurlCommand command={`curl -H "X-Auth-Token: ${(useForged && forgedToken ? forgedToken : token) || '<token>'}" \\\n  http://localhost:8080/api/jwt/${state}/profile`} />
 
         {response && (
           <div style={{ marginTop: '1rem' }}>

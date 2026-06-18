@@ -29,14 +29,14 @@ public class JwtController {
 
     @GetMapping("/vulnerable/profile")
     public ResponseEntity<?> profileVulnerable(
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-Auth-Token", required = false) String authHeader,
             HttpServletRequest request) {
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(401).body("Se requiere Authorization: Bearer <token>");
+        if (authHeader == null || authHeader.isBlank()) {
+            return ResponseEntity.status(401).body("Se requiere cabecera X-Auth-Token con el JWT");
         }
 
-        String token = authHeader.substring(7);
+        String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
         try {
             Map<String, Object> claims = jwtService.parseVulnerable(token);
             String sub = String.valueOf(claims.get("sub"));
@@ -70,14 +70,14 @@ public class JwtController {
 
     @GetMapping("/partial/profile")
     public ResponseEntity<?> profilePartial(
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-Auth-Token", required = false) String authHeader,
             HttpServletRequest request) {
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(401).body("Se requiere Authorization: Bearer <token>");
+        if (authHeader == null || authHeader.isBlank()) {
+            return ResponseEntity.status(401).body("Se requiere cabecera X-Auth-Token con el JWT");
         }
 
-        String token = authHeader.substring(7);
+        String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
         try {
             Map<String, Object> claims = jwtService.parsePartial(token);
             String sub = String.valueOf(claims.get("sub"));
@@ -114,14 +114,14 @@ public class JwtController {
 
     @GetMapping("/fixed/profile")
     public ResponseEntity<?> profileFixed(
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-Auth-Token", required = false) String authHeader,
             HttpServletRequest request) {
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(401).body("Se requiere Authorization: Bearer <token>");
+        if (authHeader == null || authHeader.isBlank()) {
+            return ResponseEntity.status(401).body("Se requiere cabecera X-Auth-Token con el JWT");
         }
 
-        String token = authHeader.substring(7);
+        String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
         try {
             Map<String, Object> claims = jwtService.parseFixed(token);
             String sub = String.valueOf(claims.get("sub"));
