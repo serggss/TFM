@@ -62,11 +62,8 @@ function HomePage() {
       {/* Cuadrícula de tarjetas de vulnerabilidades */}
       <div className="vuln-grid">
         {vulnerabilities.map(vuln => {
-          // Determinar si la tarjeta es clicable
           const route = slugToRoute[vuln.slug];
-          const isClickable = vuln.implemented && route;
 
-          // El contenido de la tarjeta es el mismo sea o no clicable
           const cardContent = (
             <>
               <div className="vuln-card-header">
@@ -76,18 +73,12 @@ function HomePage() {
                     {vuln.owaspApiRef} · {vuln.owaspWebRef}
                   </div>
                 </div>
-                <span className={`vuln-badge ${
-                  vuln.implemented ? 'vuln-badge-implemented' : 'vuln-badge-pending'
-                }`}>
-                  {vuln.implemented ? 'Implementada' : 'Pendiente'}
-                </span>
               </div>
               <p>{vuln.description}</p>
             </>
           );
 
-          // Si está implementada, envolver en Link para navegar a la demo
-          if (isClickable) {
+          if (route) {
             return (
               <Link key={vuln.id} to={route} className="vuln-card">
                 {cardContent}
@@ -95,9 +86,8 @@ function HomePage() {
             );
           }
 
-          // Si no está implementada, renderizar como tarjeta no clicable
           return (
-            <div key={vuln.id} className="vuln-card" style={{ opacity: 0.6 }}>
+            <div key={vuln.id} className="vuln-card">
               {cardContent}
             </div>
           );

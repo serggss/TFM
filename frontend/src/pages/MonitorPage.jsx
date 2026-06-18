@@ -36,7 +36,9 @@ function MonitorPage() {
 
   const formatTime = (ts) => {
     if (!ts) return '-';
-    return new Date(ts).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const d = new Date(ts);
+    return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) + ' ' +
+           d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
   return (
@@ -63,13 +65,6 @@ function MonitorPage() {
                    backgroundColor: tab === 'stats' ? 'rgba(52,152,219,0.1)' : undefined }}>
           Estadísticas
         </button>
-        <div style={{ marginLeft: 'auto' }}>
-          <button onClick={clearEvents} style={{
-            padding: '0.5rem 1rem', background: 'transparent',
-            border: '1px solid var(--color-vulnerable)', color: 'var(--color-vulnerable)',
-            borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem',
-          }}>Limpiar eventos</button>
-        </div>
       </div>
 
       {tab === 'stats' && stats && (
