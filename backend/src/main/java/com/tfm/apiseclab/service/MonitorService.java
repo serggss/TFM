@@ -1,10 +1,15 @@
 package com.tfm.apiseclab.service;
 
+import com.tfm.apiseclab.dto.FingerprintAnalysis;
+import com.tfm.apiseclab.dto.SessionAnalysis;
 import com.tfm.apiseclab.model.SecurityEvent;
 import com.tfm.apiseclab.repository.SecurityEventRepository;
+import com.tfm.apiseclab.service.fingerprint.FingerprintClassifier;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -12,9 +17,12 @@ import java.util.stream.Collectors;
 public class MonitorService {
 
     private final SecurityEventRepository eventRepository;
+    private final FingerprintClassifier classifier;
 
-    public MonitorService(SecurityEventRepository eventRepository) {
+    public MonitorService(SecurityEventRepository eventRepository,
+                          FingerprintClassifier classifier) {
         this.eventRepository = eventRepository;
+        this.classifier = classifier;
     }
 
     public void recordEvent(String vulnerability, String state, boolean attackSuccess,
@@ -28,45 +36,79 @@ public class MonitorService {
         event.setEndpoint(request.getRequestURI());
         event.setMethod(request.getMethod());
         event.setSourceIp(request.getRemoteAddr());
+        event.setUserAgent(request.getHeader("User-Agent"));
 
-        String userAgent = request.getHeader("User-Agent");
-        event.setUserAgent(userAgent);
+        String headerOrder = Collections.list(request.getHeaderNames()).stream()
+                .map(String::toLowerCase).collect(Collectors.joining(", "));
+        event.setHeaderOrderSignature(headerOrder);
 
-        String headerOrder = extractHeaderOrder(request);
-        int headerCount = Collections.list(request.getHeaderNames()).size();
-        String toolGuess = fingerprintClient(userAgent);
-        event.setClientFingerprint(String.format("%s|headers=%d|order_hash=%d",
-                toolGuess, headerCount, headerOrder.hashCode()));
+        String sessionKey = buildSessionKey(request);
+        List<SecurityEvent> sessionEvents = getEventsBySessionKey(sessionKey);
+        if (!sessionEvents.isEmpty()) {
+            long intervalMs = Duration.between(sessionEvents.get(0).getTimestamp(), Instant.now()).toMillis();
+            event.setRequestIntervalMs(intervalMs);
+        }
+
+        FingerprintAnalysis analysis = classifier.classifyRequest(request);
+        event.setClientFingerprint(String.format("%s|confianza=%.0f%%|cabeceras=%d",
+                analysis.tool(), analysis.confidence() * 100, headerOrder.split(",").length));
 
         eventRepository.save(event);
     }
 
-    private String extractHeaderOrder(HttpServletRequest request) {
-        return Collections.list(request.getHeaderNames()).stream()
-                .map(String::toLowerCase)
-                .collect(Collectors.joining(","));
+    public String buildSessionKey(HttpServletRequest request) {
+        String ip = request.getRemoteAddr();
+        String ua = request.getHeader("User-Agent");
+        return Objects.hash(ip, ua) + "-" + (ip != null ? ip.replace(":", "") : "noip");
     }
 
-    private String fingerprintClient(String userAgent) {
-        if (userAgent == null || userAgent.isBlank()) return "no-user-agent";
+    private String sessionKeyFromEvent(SecurityEvent e) {
+        return Objects.hash(e.getSourceIp(), e.getUserAgent())
+               + "-" + (e.getSourceIp() != null ? e.getSourceIp().replace(":", "") : "noip");
+    }
 
-        String ua = userAgent.toLowerCase();
+    public List<SecurityEvent> getEventsBySessionKey(String sessionKey) {
+        return eventRepository.findAllByOrderByTimestampDesc().stream()
+                .filter(e -> sessionKeyFromEvent(e).equals(sessionKey)).toList();
+    }
 
-        if (ua.contains("sqlmap"))       return "sqlmap";
-        if (ua.contains("nikto"))        return "nikto";
-        if (ua.contains("nmap"))         return "nmap";
-        if (ua.contains("burp"))         return "burp-suite";
-        if (ua.contains("zap"))          return "owasp-zap";
-        if (ua.contains("postman"))      return "postman";
-        if (ua.contains("insomnia"))     return "insomnia";
-        if (ua.contains("curl"))         return "curl";
-        if (ua.contains("httpie"))       return "httpie";
-        if (ua.contains("python"))       return "python-script";
-        if (ua.contains("axios"))        return "axios";
-        if (ua.contains("node"))         return "node-fetch";
-        if (ua.contains("mozilla"))      return "browser";
+    public List<SessionAnalysis> getSessions() {
+        List<SecurityEvent> all = eventRepository.findAllByOrderByTimestampDesc();
+        Map<String, List<SecurityEvent>> grouped = new LinkedHashMap<>();
+        for (SecurityEvent e : all) {
+            grouped.computeIfAbsent(sessionKeyFromEvent(e), k -> new ArrayList<>()).add(e);
+        }
 
-        return "unknown";
+        List<SessionAnalysis> sessions = new ArrayList<>();
+        for (var entry : grouped.entrySet()) {
+            List<SecurityEvent> events = entry.getValue();
+            SecurityEvent oldest = events.get(events.size() - 1);
+            SecurityEvent newest = events.get(0);
+
+            FingerprintAnalysis fp = classifier.classifySession(null, events);
+
+            Map<String, Integer> endpoints = new HashMap<>();
+            Map<String, Integer> states = new HashMap<>();
+            Map<String, Integer> vulns = new HashMap<>();
+            int success = 0, blocked = 0;
+            for (SecurityEvent e : events) {
+                endpoints.merge(e.getEndpoint(), 1, Integer::sum);
+                states.merge(e.getState(), 1, Integer::sum);
+                vulns.merge(e.getVulnerability(), 1, Integer::sum);
+                if (e.isAttackSuccess()) success++; else blocked++;
+            }
+
+            sessions.add(new SessionAnalysis(entry.getKey(), oldest.getSourceIp(),
+                    oldest.getUserAgent(), events.size(), oldest.getTimestamp(),
+                    newest.getTimestamp(), fp, endpoints, states, vulns, success, blocked));
+        }
+        return sessions;
+    }
+
+    public SessionAnalysis getSessionByKey(String sessionKey) {
+        return getSessions().stream()
+                .filter(s -> s.sessionKey().equals(sessionKey))
+                .findFirst().orElse(null);
     }
 
     public List<SecurityEvent> getAllEvents() {
@@ -81,37 +123,34 @@ public class MonitorService {
         return eventRepository.findByStateOrderByTimestampDesc(state);
     }
 
-    public void clearAll() {
-        eventRepository.deleteAll();
-    }
+    public void clearAll() { eventRepository.deleteAll(); }
 
     public Map<String, Object> getStats() {
         List<SecurityEvent> all = eventRepository.findAll();
-        long totalEvents = all.size();
-        long totalAttacks = all.stream().filter(SecurityEvent::isAttackSuccess).count();
-
-        Map<String, Long> byVuln = all.stream()
-                .collect(Collectors.groupingBy(SecurityEvent::getVulnerability, Collectors.counting()));
-
-        Map<String, Long> byState = all.stream()
-                .collect(Collectors.groupingBy(SecurityEvent::getState, Collectors.counting()));
-
-        Map<String, Long> attacksByVuln = all.stream()
-                .filter(SecurityEvent::isAttackSuccess)
-                .collect(Collectors.groupingBy(SecurityEvent::getVulnerability, Collectors.counting()));
-
-        Map<String, Long> byFingerprint = all.stream()
-                .map(e -> e.getClientFingerprint() != null ? e.getClientFingerprint().split("\\|")[0] : "unknown")
-                .collect(Collectors.groupingBy(f -> f, Collectors.counting()));
-
+        long total = all.size();
+        long attacks = all.stream().filter(SecurityEvent::isAttackSuccess).count();
         return Map.of(
-                "totalEvents", totalEvents,
-                "totalAttacks", totalAttacks,
-                "successRate", totalEvents > 0 ? Math.round(totalAttacks * 100.0 / totalEvents) : 0,
-                "byVulnerability", byVuln,
-                "byState", byState,
-                "attacksByVulnerability", attacksByVuln,
-                "byClientTool", byFingerprint
+                "totalEvents", total,
+                "totalAttacks", attacks,
+                "successRate", total > 0 ? Math.round(attacks * 100.0 / total) : 0,
+                "byVulnerability", all.stream().collect(Collectors.groupingBy(SecurityEvent::getVulnerability, Collectors.counting())),
+                "byState", all.stream().collect(Collectors.groupingBy(SecurityEvent::getState, Collectors.counting())),
+                "attacksByVulnerability", all.stream().filter(SecurityEvent::isAttackSuccess).collect(Collectors.groupingBy(SecurityEvent::getVulnerability, Collectors.counting())),
+                "byClientTool", all.stream().map(e -> e.getClientFingerprint() != null ? e.getClientFingerprint().split("\\|")[0] : "desconocido").collect(Collectors.groupingBy(f -> f, Collectors.counting()))
         );
     }
+
+    public Map<String, Object> getProgress() {
+        List<SecurityEvent> all = eventRepository.findAll();
+        Map<String, Set<String>> byVuln = new HashMap<>();
+        for (SecurityEvent e : all) byVuln.computeIfAbsent(e.getVulnerability(), k -> new HashSet<>()).add(e.getState());
+        Map<String, Object> result = new HashMap<>();
+        for (var entry : byVuln.entrySet()) {
+            Set<String> s = entry.getValue();
+            result.put(entry.getKey(), Map.of("statesTried", s, "status", s.size() >= 3 ? "completed" : "in_progress", "progress", s.size() + "/3"));
+        }
+        return Map.of("vulnerabilities", result);
+    }
+
+    public FingerprintClassifier getClassifier() { return classifier; }
 }

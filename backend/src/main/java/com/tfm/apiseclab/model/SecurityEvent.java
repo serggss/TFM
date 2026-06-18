@@ -82,9 +82,14 @@ public class SecurityEvent {
     @Column(nullable = false)
     private boolean attackSuccess;
 
-    /** Descripción legible de lo que ocurrió, para mostrar en el frontend. */
     @Column(length = 1000)
     private String description;
+
+    @Column(length = 2000)
+    private String headerOrderSignature;
+
+    @Column
+    private Long requestIntervalMs;
 
     // =========================================================================
     // Constructores
@@ -131,4 +136,10 @@ public class SecurityEvent {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getHeaderOrderSignature() { return headerOrderSignature; }
+    public void setHeaderOrderSignature(String headerOrderSignature) { this.headerOrderSignature = headerOrderSignature; }
+
+    public Long getRequestIntervalMs() { return requestIntervalMs; }
+    public void setRequestIntervalMs(Long requestIntervalMs) { this.requestIntervalMs = requestIntervalMs; }
 }
