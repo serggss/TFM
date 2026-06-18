@@ -57,24 +57,35 @@ public class TimingAnalyzer {
             }
         }
 
+        boolean highVolume = sessionEvents.size() > 50;
+        boolean manyBursts = burstCount > 10;
+        boolean fastAverage = mean < 500 && sessionEvents.size() > 20;
+
         String pattern;
-        if (cv < CV_AUTOMATED_THRESHOLD) {
+        if (highVolume && manyBursts) {
+            pattern = "automatizado";
+            reasons.add(String.format("Volumen alto (%d peticiones) con %d ráfagas → escáner multi-hilo (CV=%.2f alto por mezcla de fases rápidas y pausas)",
+                    sessionEvents.size(), burstCount, cv));
+        } else if (fastAverage) {
+            pattern = "automatizado";
+            reasons.add(String.format("Intervalo medio=%.0fms con %d peticiones → velocidad no humana", mean, sessionEvents.size()));
+        } else if (cv < CV_AUTOMATED_THRESHOLD) {
             pattern = "automatizado";
             reasons.add(String.format("CV=%.2f (< %.1f) → intervalos muy regulares, típico de herramienta automatizada", cv, CV_AUTOMATED_THRESHOLD));
-        } else if (cv > CV_HUMAN_THRESHOLD) {
+        } else if (cv > CV_HUMAN_THRESHOLD && !highVolume) {
             pattern = "manual";
-            reasons.add(String.format("CV=%.2f (> %.1f) → intervalos irregulares, típico de interacción humana", cv, CV_HUMAN_THRESHOLD));
+            reasons.add(String.format("CV=%.2f (> %.1f) con pocas peticiones → interacción humana", cv, CV_HUMAN_THRESHOLD));
         } else {
             pattern = "semi-automatizado";
             reasons.add(String.format("CV=%.2f → patrón mixto (herramienta con pausas o humano con scripts)", cv));
         }
 
         if (burstCount > 0) {
-            reasons.add(String.format("%d ráfaga(s) detectada(s) (>%d peticiones en <%dms) → posible escaneo", burstCount, BURST_MIN_REQUESTS, BURST_THRESHOLD_MS));
+            reasons.add(String.format("%d ráfaga(s) detectada(s) (>%d peticiones en <%dms)", burstCount, BURST_MIN_REQUESTS, BURST_THRESHOLD_MS));
         }
 
         if (mean < 1000 && sessionEvents.size() > 5) {
-            reasons.add(String.format("Intervalo medio=%.0fms con %d peticiones → velocidad no humana", mean, sessionEvents.size()));
+            reasons.add(String.format("Intervalo medio=%.0fms con %d peticiones", mean, sessionEvents.size()));
         }
 
         return new TimingResult(mean, stdDev, cv, burstCount, intervals.size(), pattern, reasons);
