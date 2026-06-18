@@ -5,6 +5,7 @@ import com.tfm.apiseclab.dto.SessionAnalysis;
 import com.tfm.apiseclab.model.SecurityEvent;
 import com.tfm.apiseclab.repository.SecurityEventRepository;
 import com.tfm.apiseclab.service.fingerprint.FingerprintClassifier;
+import com.tfm.apiseclab.service.fingerprint.SophisticationAnalyzer;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
@@ -18,11 +19,14 @@ public class MonitorService {
 
     private final SecurityEventRepository eventRepository;
     private final FingerprintClassifier classifier;
+    private final SophisticationAnalyzer sophisticationAnalyzer;
 
     public MonitorService(SecurityEventRepository eventRepository,
-                          FingerprintClassifier classifier) {
+                          FingerprintClassifier classifier,
+                          SophisticationAnalyzer sophisticationAnalyzer) {
         this.eventRepository = eventRepository;
         this.classifier = classifier;
+        this.sophisticationAnalyzer = sophisticationAnalyzer;
     }
 
     public void recordEvent(String vulnerability, String state, boolean attackSuccess,
@@ -153,4 +157,14 @@ public class MonitorService {
     }
 
     public FingerprintClassifier getClassifier() { return classifier; }
+
+    public SophisticationAnalyzer.SophisticationResult analyzeSophistication(String sessionKey) {
+        List<SecurityEvent> events = getEventsBySessionKey(sessionKey);
+        return sophisticationAnalyzer.analyze(events);
+    }
+
+    public SophisticationAnalyzer.SophisticationResult analyzeGlobalSophistication() {
+        List<SecurityEvent> all = eventRepository.findAllByOrderByTimestampDesc();
+        return sophisticationAnalyzer.analyze(all);
+    }
 }

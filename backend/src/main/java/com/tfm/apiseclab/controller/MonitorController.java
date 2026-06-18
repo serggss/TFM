@@ -67,4 +67,14 @@ public class MonitorController {
     public ResponseEntity<?> getKnownSignatures() {
         return ResponseEntity.ok(monitorService.getClassifier().getHeaderAnalyzer().getKnownSignatures());
     }
+
+    @GetMapping("/sophistication")
+    public ResponseEntity<?> getGlobalSophistication() {
+        return ResponseEntity.ok(monitorService.analyzeGlobalSophistication());
+    }
+
+    @GetMapping("/sophistication/{sessionKey}")
+    public ResponseEntity<?> getSessionSophistication(@PathVariable String sessionKey) {
+        return ResponseEntity.ok(monitorService.analyzeSophistication(sessionKey));
+    }
 }

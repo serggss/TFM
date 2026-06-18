@@ -8,6 +8,7 @@ import ExceptionsPage from './pages/ExceptionsPage';
 import PromptInjectionPage from './pages/PromptInjectionPage';
 import DiffViewerPage from './pages/DiffViewerPage';
 import FingerprintPage from './pages/FingerprintPage';
+import SophisticationPage from './pages/SophisticationPage';
 import MonitorPage from './pages/MonitorPage';
 
 const NAV_ITEMS = [
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { path: '/prompt-injection', label: 'Inyección IA' },
   { path: '/diffs', label: 'Código' },
   { path: '/fingerprint', label: 'Fingerprint' },
+  { path: '/isa', label: 'ISA' },
   { path: '/monitor', label: 'Monitor' },
 ];
 
@@ -56,6 +58,7 @@ function App() {
           <Route path="/prompt-injection" element={<PromptInjectionPage />} />
           <Route path="/diffs" element={<DiffViewerPage />} />
           <Route path="/fingerprint" element={<FingerprintPage />} />
+          <Route path="/isa" element={<SophisticationPage />} />
           <Route path="/monitor" element={<MonitorPage />} />
         </Routes>
       </main>
