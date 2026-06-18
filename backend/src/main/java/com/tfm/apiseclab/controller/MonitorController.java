@@ -74,4 +74,9 @@ public class MonitorController {
     public ResponseEntity<Map<String, Object>> getStats() {
         return ResponseEntity.ok(monitorService.getStats());
     }
+
+    @GetMapping("/progress")
+    public ResponseEntity<Map<String, Object>> getProgress() {
+        return ResponseEntity.ok(monitorService.getProgress());
+    }
 }

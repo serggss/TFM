@@ -85,6 +85,33 @@ public class MonitorService {
         eventRepository.deleteAll();
     }
 
+    public Map<String, Object> getProgress() {
+        List<SecurityEvent> all = eventRepository.findAll();
+
+        Map<String, Set<String>> statesByVuln = new HashMap<>();
+        for (SecurityEvent e : all) {
+            statesByVuln.computeIfAbsent(e.getVulnerability(), k -> new HashSet<>())
+                    .add(e.getState());
+        }
+
+        Map<String, Object> vulnProgress = new HashMap<>();
+        for (Map.Entry<String, Set<String>> entry : statesByVuln.entrySet()) {
+            Set<String> states = entry.getValue();
+            String status;
+            if (states.size() >= 3) status = "completed";
+            else if (!states.isEmpty()) status = "in_progress";
+            else status = "not_started";
+
+            vulnProgress.put(entry.getKey(), Map.of(
+                    "statesTried", states,
+                    "status", status,
+                    "progress", states.size() + "/3"
+            ));
+        }
+
+        return Map.of("vulnerabilities", vulnProgress);
+    }
+
     public Map<String, Object> getStats() {
         List<SecurityEvent> all = eventRepository.findAll();
         long totalEvents = all.size();

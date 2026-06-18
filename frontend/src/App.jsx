@@ -1,5 +1,6 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
+import ProgressionMapPage from './pages/ProgressionMapPage';
 import BolaPage from './pages/BolaPage';
 import JwtPage from './pages/JwtPage';
 import CorsPage from './pages/CorsPage';
@@ -11,6 +12,7 @@ import MonitorPage from './pages/MonitorPage';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Catálogo' },
+  { path: '/map', label: 'Mapa' },
   { path: '/bola', label: 'BOLA' },
   { path: '/jwt', label: 'JWT' },
   { path: '/cors', label: 'CORS' },
@@ -46,6 +48,7 @@ function App() {
       <main className="app-main">
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/map" element={<ProgressionMapPage />} />
           <Route path="/bola" element={<BolaPage />} />
           <Route path="/jwt" element={<JwtPage />} />
           <Route path="/cors" element={<CorsPage />} />
