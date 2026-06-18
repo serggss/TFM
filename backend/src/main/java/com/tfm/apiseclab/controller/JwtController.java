@@ -108,7 +108,10 @@ public class JwtController {
         } catch (Exception e) {
             monitorService.recordEvent("JWT", "partial", false,
                     "Token rechazado: " + e.getMessage(), request);
-            return ResponseEntity.status(403).body("Token inválido: " + e.getMessage());
+            return ResponseEntity.status(403).body(Map.of(
+                    "error", "Token inválido: " + e.getMessage(),
+                    "oracle", new OracleResult("partial", null, null, false, "ATTACK_BLOCKED")
+            ));
         }
     }
 
@@ -146,7 +149,10 @@ public class JwtController {
         } catch (Exception e) {
             monitorService.recordEvent("JWT", "fixed", false,
                     "Token rechazado: " + e.getMessage(), request);
-            return ResponseEntity.status(403).body("Token rechazado: " + e.getMessage());
+            return ResponseEntity.status(403).body(Map.of(
+                    "error", "Token rechazado: " + e.getMessage(),
+                    "oracle", new OracleResult("fixed", null, null, false, "ATTACK_BLOCKED")
+            ));
         }
     }
 }
