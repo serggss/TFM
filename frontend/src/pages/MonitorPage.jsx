@@ -131,9 +131,9 @@ function MonitorPage() {
                 <option value="BOLA">BOLA</option>
                 <option value="JWT">JWT</option>
                 <option value="CORS">CORS</option>
-                <option value="MASS_ASSIGNMENT">Mass Assignment</option>
-                <option value="EXCEPTIONS">Exceptions</option>
-                <option value="PROMPT_INJECTION">Prompt Injection</option>
+                <option value="MASS_ASSIGNMENT">Asignación Masiva</option>
+                <option value="EXCEPTIONS">Excepciones</option>
+                <option value="PROMPT_INJECTION">Inyección de Prompt</option>
               </select>
             </div>
           </div>

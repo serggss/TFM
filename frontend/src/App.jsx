@@ -14,10 +14,10 @@ const NAV_ITEMS = [
   { path: '/bola', label: 'BOLA' },
   { path: '/jwt', label: 'JWT' },
   { path: '/cors', label: 'CORS' },
-  { path: '/mass-assignment', label: 'Mass Assign' },
-  { path: '/exceptions', label: 'Exceptions' },
-  { path: '/prompt-injection', label: 'Prompt Inj.' },
-  { path: '/diffs', label: 'Diffs' },
+  { path: '/mass-assignment', label: 'Asig. Masiva' },
+  { path: '/exceptions', label: 'Excepciones' },
+  { path: '/prompt-injection', label: 'Inyección IA' },
+  { path: '/diffs', label: 'Código' },
   { path: '/monitor', label: 'Monitor' },
 ];
 

@@ -4,9 +4,9 @@ const VULN_NAMES = {
   'bola': 'BOLA / IDOR',
   'jwt': 'JWT mal implementado',
   'cors': 'CORS mal configurado',
-  'mass-assignment': 'Mass Assignment / BOPLA',
-  'exceptions': 'Mishandling of Exceptions',
-  'prompt-injection': 'Prompt Injection',
+  'mass-assignment': 'Asignación Masiva / BOPLA',
+  'exceptions': 'Manejo Incorrecto de Excepciones',
+  'prompt-injection': 'Inyección de Prompt',
 };
 
 function DiffViewerPage() {
@@ -29,11 +29,11 @@ function DiffViewerPage() {
     fixed: 'var(--color-fixed)',
   };
 
-  if (loading) return <p className="text-muted">Cargando diffs...</p>;
+  if (loading) return <p className="text-muted">Cargando código...</p>;
 
   return (
     <div>
-      <h2 className="section-title">Visor de Diffs de Código</h2>
+      <h2 className="section-title">Visor de Código por Estados</h2>
       <p className="section-subtitle">
         Comparación del código clave entre los tres estados de cada vulnerabilidad.
         Las diferencias muestran exactamente qué cambia entre vulnerable, partial y fixed.

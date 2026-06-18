@@ -41,8 +41,8 @@ public class ExceptionsController {
             if (userIdStr != null) {
                 Long userId = Long.parseLong(userIdStr);
                 userRepository.findById(userId).orElseThrow(
-                        () -> new RuntimeException("User not found in database: userId=" + userId +
-                                " table=user_profiles schema=PUBLIC datasource=jdbc:h2:mem:apiseclab"));
+                        () -> new RuntimeException("Usuario no encontrado en BD: userId=" + userId +
+                                " tabla=user_profiles esquema=PUBLIC datasource=jdbc:h2:mem:apiseclab"));
             }
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of(
@@ -80,7 +80,7 @@ public class ExceptionsController {
             } else {
                 Long userId = Long.parseLong(userIdStr);
                 UserProfile user = userRepository.findById(userId)
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+                        .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
                 isAuthorized = "admin".equals(user.getRole());
             }
         } catch (Exception e) {

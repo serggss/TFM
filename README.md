@@ -64,7 +64,7 @@ GET  /api/auth/forge-none/{userId}            # herramienta de ataque
 GET  /api/jwt/{state}/profile                 # header: Authorization: Bearer <token>
 ```
 
-Usuarios: alice/password123, bob/password456, charlie/password789, admin/admin
+Usuarios: alicia/password123, roberto/password456, carlos/password789, admin/admin
 
 ### CORS (#3)
 ```
