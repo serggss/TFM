@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import CurlCommand from '../components/CurlCommand';
 
 function BehindTheScenes({ state }) {
   const code = {
@@ -141,6 +142,10 @@ function ExceptionsPage() {
             </div>
           </div>
         </div>
+        <CurlCommand command={userIdInput
+          ? `curl -H "X-User-Id: ${userIdInput}" \\\n  http://localhost:8080/api/exceptions/${state}/admin/config`
+          : `curl http://localhost:8080/api/exceptions/${state}/admin/config`
+        } />
       </div>
 
       {response && (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import CurlCommand from '../components/CurlCommand';
 
 function BehindTheScenes({ state }) {
   const code = {
@@ -169,6 +170,7 @@ function MassAssignmentPage() {
             </div>
           </div>
         </div>
+        <CurlCommand command={`curl -X PUT -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(buildBody())}' \\\n  http://localhost:8080/api/mass-assignment/${state}/profile/${TARGET_ID}`} />
       </div>
 
       {response && (

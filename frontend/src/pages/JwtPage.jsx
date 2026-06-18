@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import CurlCommand from '../components/CurlCommand';
 
 function TokenDecoder({ token, label, highlight }) {
   if (!token) return null;
@@ -243,6 +244,7 @@ function JwtPage() {
             POST /api/auth/login
           </button>
         </div>
+        <CurlCommand command={`curl -X POST -H "Content-Type: application/json" \\\n  -d '{"username":"${username}","password":"${password}"}' \\\n  http://localhost:8080/api/auth/login`} />
         {token && <TokenDecoder token={token} label="Token legítimo recibido (firmado con HS256):" />}
       </StepCard>
 
@@ -301,6 +303,7 @@ function JwtPage() {
         <button className="btn-attack" onClick={sendToken} disabled={loading}>
           {loading ? 'Enviando...' : 'Enviar petición'}
         </button>
+        <CurlCommand command={`curl -H "Authorization: Bearer ${(useForged && forgedToken ? forgedToken : token) || '<token>'}" \\\n  http://localhost:8080/api/jwt/${state}/profile`} />
 
         {response && (
           <div style={{ marginTop: '1rem' }}>

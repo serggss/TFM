@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import CurlCommand from '../components/CurlCommand';
 
 function BehindTheScenes({ state }) {
   const code = {
@@ -123,6 +124,7 @@ function PromptInjectionPage() {
         <button className="btn-attack" onClick={sendRequest} disabled={loading || !text}>
           {loading ? 'Procesando...' : `POST /api/prompt-injection/${state}/summarize`}
         </button>
+        <CurlCommand command={`curl -X POST -H "Content-Type: application/json" \\\n  -d '${JSON.stringify({ text })}' \\\n  http://localhost:8080/api/prompt-injection/${state}/summarize`} />
       </div>
 
       {response && (

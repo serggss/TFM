@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import CurlCommand from '../components/CurlCommand';
 
 function BehindTheScenes({ state }) {
   const code = {
@@ -138,6 +139,7 @@ function CorsPage() {
             </div>
           </div>
         </div>
+        <CurlCommand command={`curl -v -H "Origin: ${origin}" \\\n  http://localhost:8080/api/cors/${state}/data`} />
       </div>
 
       {response && (

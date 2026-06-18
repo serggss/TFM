@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getAccount, searchAccounts } from '../api/client';
+import CurlCommand from '../components/CurlCommand';
 
 function BehindTheScenes({ state }) {
   const code = {
@@ -162,6 +163,11 @@ function BolaPage() {
             </div>
           </div>
         </div>
+        <CurlCommand command={
+          attackType === 'direct'
+            ? `curl -H "X-User-Id: ${userId}" http://localhost:8080/api/bola/${state}/accounts/${targetAccountId}`
+            : `curl -H "X-User-Id: ${userId}" "http://localhost:8080/api/bola/${state}/accounts?ownerId=${targetOwnerId}"`
+        } />
       </div>
 
       {response && (

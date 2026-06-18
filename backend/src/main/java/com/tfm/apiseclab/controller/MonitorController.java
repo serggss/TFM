@@ -35,7 +35,7 @@ public class MonitorController {
         return ResponseEntity.ok(events);
     }
 
-    @DeleteMapping("/events")
+    @PostMapping("/events/clear")
     public ResponseEntity<String> clearEvents() {
         monitorService.clearAll();
         return ResponseEntity.ok("Eventos eliminados");

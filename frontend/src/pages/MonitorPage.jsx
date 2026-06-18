@@ -30,7 +30,7 @@ function MonitorPage() {
   }, [filter]);
 
   const clearEvents = async () => {
-    await fetch('/api/monitor/events', { method: 'DELETE' });
+    await fetch('/api/monitor/events/clear', { method: 'POST' });
     loadData();
   };
 
