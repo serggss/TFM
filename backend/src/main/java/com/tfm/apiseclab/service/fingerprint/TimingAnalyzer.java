@@ -57,9 +57,9 @@ public class TimingAnalyzer {
             }
         }
 
-        boolean highVolume = sessionEvents.size() > 50;
-        boolean manyBursts = burstCount > 10;
-        boolean fastAverage = mean < 500 && sessionEvents.size() > 20;
+        boolean highVolume = sessionEvents.size() > 20;
+        boolean manyBursts = burstCount > 2;
+        boolean fastAverage = mean < 3000 && sessionEvents.size() > 20;
 
         String pattern;
         if (highVolume && manyBursts) {
