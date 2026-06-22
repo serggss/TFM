@@ -127,7 +127,7 @@ function PromptInjectionPage() {
         <button className="btn-attack" onClick={sendRequest} disabled={loading || !text}>
           {loading ? 'Procesando...' : `POST /api/prompt-injection/${state}/summarize`}
         </button>
-        <CurlCommand command={`curl -X POST -H "Content-Type: application/json" \\\n  -d '${JSON.stringify({ text })}' \\\n  http://localhost:8080/api/prompt-injection/${state}/summarize`} />
+        <CurlCommand command={`curl -X POST -H "Content-Type: application/json" \\\n  -d '${JSON.stringify({ text })}' \\\n  ${window.location.origin}/api/prompt-injection/${state}/summarize`} />
       </div>
 
       {response && (

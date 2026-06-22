@@ -168,8 +168,8 @@ function BolaPage() {
         </div>
         <CurlCommand command={
           attackType === 'direct'
-            ? `curl -H "X-User-Id: ${userId}" http://localhost:8080/api/bola/${state}/accounts/${targetAccountId}`
-            : `curl -H "X-User-Id: ${userId}" "http://localhost:8080/api/bola/${state}/accounts?ownerId=${targetOwnerId}"`
+            ? `curl -H "X-User-Id: ${userId}" ${window.location.origin}/api/bola/${state}/accounts/${targetAccountId}`
+            : `curl -H "X-User-Id: ${userId}" "${window.location.origin}/api/bola/${state}/accounts?ownerId=${targetOwnerId}"`
         } />
       </div>
 

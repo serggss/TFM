@@ -247,7 +247,7 @@ function JwtPage() {
             POST /api/auth/login
           </button>
         </div>
-        <CurlCommand command={`curl -X POST -H "Content-Type: application/json" \\\n  -d '{"username":"${username}","password":"${password}"}' \\\n  http://localhost:8080/api/auth/login`} />
+        <CurlCommand command={`curl -X POST -H "Content-Type: application/json" \\\n  -d '{"username":"${username}","password":"${password}"}' \\\n  ${window.location.origin}/api/auth/login`} />
         {token && <TokenDecoder token={token} label="Token legítimo recibido (firmado con HS256):" />}
       </StepCard>
 
@@ -306,7 +306,7 @@ function JwtPage() {
         <button className="btn-attack" onClick={sendToken} disabled={loading}>
           {loading ? 'Enviando...' : 'Enviar petición'}
         </button>
-        <CurlCommand command={`curl -H "X-Auth-Token: ${(useForged && forgedToken ? forgedToken : token) || '<token>'}" \\\n  http://localhost:8080/api/jwt/${state}/profile`} />
+        <CurlCommand command={`curl -H "X-Auth-Token: ${(useForged && forgedToken ? forgedToken : token) || '<token>'}" \\\n  ${window.location.origin}/api/jwt/${state}/profile`} />
 
         {response && (
           <div style={{ marginTop: '1rem' }}>

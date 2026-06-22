@@ -146,8 +146,8 @@ function ExceptionsPage() {
           </div>
         </div>
         <CurlCommand command={userIdInput
-          ? `curl -H "X-User-Id: ${userIdInput}" \\\n  http://localhost:8080/api/exceptions/${state}/admin/config`
-          : `curl http://localhost:8080/api/exceptions/${state}/admin/config`
+          ? `curl -H "X-User-Id: ${userIdInput}" \\\n  ${window.location.origin}/api/exceptions/${state}/admin/config`
+          : `curl ${window.location.origin}/api/exceptions/${state}/admin/config`
         } />
       </div>
 
