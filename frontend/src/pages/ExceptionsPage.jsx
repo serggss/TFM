@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import CurlCommand from '../components/CurlCommand';
+import MitigationAnalysis from '../components/MitigationAnalysis';
 
 function BehindTheScenes({ state }) {
   const code = {
@@ -110,6 +111,8 @@ function ExceptionsPage() {
         <p style={{ marginTop: '0.5rem', fontStyle: 'italic', color: 'var(--color-accent)', fontSize: '0.85rem' }}>{explanations[state].attackHint}</p>
         <BehindTheScenes state={state} />
       </div>
+
+      <MitigationAnalysis slug="exceptions" state={state} />
 
       <div className="card">
         <h3 className="mb-2">Enviar petición a endpoint de admin</h3>

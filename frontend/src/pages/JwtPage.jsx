@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import CurlCommand from '../components/CurlCommand';
+import MitigationAnalysis from '../components/MitigationAnalysis';
 
 function TokenDecoder({ token, label, highlight }) {
   if (!token) return null;
@@ -218,6 +219,8 @@ function JwtPage() {
         </p>
         <BehindTheScenes state={state} />
       </div>
+
+      <MitigationAnalysis slug="jwt" state={state} />
 
       <StepCard number={1} title="Autenticarse y obtener un token legítimo" active={step >= 1} done={!!token}>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>

@@ -39,7 +39,7 @@ function DiffViewerPage() {
         Las diferencias muestran exactamente qué cambia entre vulnerable, partial y fixed.
       </p>
 
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginBottom: '1.5rem', maxWidth: '700px', margin: '0 auto 1.5rem' }}>
         {diffs.map(d => (
           <button key={d.slug}
             onClick={() => setSelected(d.slug)}

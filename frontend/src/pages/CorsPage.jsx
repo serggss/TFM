@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import CurlCommand from '../components/CurlCommand';
+import MitigationAnalysis from '../components/MitigationAnalysis';
 
 function BehindTheScenes({ state }) {
   const code = {
@@ -107,6 +108,8 @@ function CorsPage() {
         </p>
         <BehindTheScenes state={state} />
       </div>
+
+      <MitigationAnalysis slug="cors" state={state} />
 
       <div className="card">
         <h3 className="mb-2">Simular petición cross-origin</h3>

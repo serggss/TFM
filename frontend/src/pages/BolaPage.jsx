@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getAccount, searchAccounts } from '../api/client';
 import CurlCommand from '../components/CurlCommand';
+import MitigationAnalysis from '../components/MitigationAnalysis';
 
 function BehindTheScenes({ state }) {
   const code = {
@@ -111,6 +112,8 @@ function BolaPage() {
         </p>
         <BehindTheScenes state={state} />
       </div>
+
+      <MitigationAnalysis slug="bola" state={state} />
 
       <div className="card">
         <h3 className="mb-2">Configurar ataque</h3>

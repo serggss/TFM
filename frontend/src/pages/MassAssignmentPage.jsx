@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import CurlCommand from '../components/CurlCommand';
+import MitigationAnalysis from '../components/MitigationAnalysis';
 
 function BehindTheScenes({ state }) {
   const code = {
@@ -120,6 +121,8 @@ function MassAssignmentPage() {
         <p style={{ marginTop: '0.5rem', fontStyle: 'italic', color: 'var(--color-accent)', fontSize: '0.85rem' }}>{explanations[state].attackHint}</p>
         <BehindTheScenes state={state} />
       </div>
+
+      <MitigationAnalysis slug="mass-assignment" state={state} />
 
       {profile && (
         <div className="card">

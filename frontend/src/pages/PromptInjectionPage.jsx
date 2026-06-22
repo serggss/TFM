@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import CurlCommand from '../components/CurlCommand';
+import MitigationAnalysis from '../components/MitigationAnalysis';
 
 function BehindTheScenes({ state }) {
   const code = {
@@ -89,6 +90,8 @@ function PromptInjectionPage() {
         <p style={{ marginTop: '0.5rem', fontStyle: 'italic', color: 'var(--color-accent)', fontSize: '0.85rem' }}>{explanations[state].attackHint}</p>
         <BehindTheScenes state={state} />
       </div>
+
+      <MitigationAnalysis slug="prompt-injection" state={state} />
 
       <div className="card">
         <h3 className="mb-2">Enviar texto al resumidor de reseñas</h3>
