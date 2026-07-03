@@ -46,7 +46,7 @@ Frontend: http://localhost:3000 · Backend: http://localhost:8080
 | 2 | JWT mal implementado | API2:2023 | A01/A07:2025 | Acepta tokens con alg=none (sin firma) |
 | 3 | CORS mal configurado | API8:2023 | A01/A02:2025 | Validación con contains("localhost") |
 | 4 | Mass Assignment / BOPLA | API3:2023 | A01:2025 | Blocklist olvida verified y discount |
-| 5 | Mishandling of Exceptions | API8:2023 | A10:2025 (nueva) | Fail-open: isAuthorized defaulted to true |
+| 5 | Mishandling of Exceptions | API8:2023 | A10:2025 (nueva) | Fail-open: isAuthorized inicializado a true |
 | 6 | Prompt Injection | LLM01 | A06:2025 | Filtro solo en inglés, bypass en español |
 
 ## Endpoints
@@ -61,7 +61,7 @@ GET /api/bola/{state}/accounts[?ownerId=X]
 ```
 POST /api/auth/login                          # body: {"username","password"}
 GET  /api/auth/forge-none/{userId}            # herramienta de ataque
-GET  /api/jwt/{state}/profile                 # header: Authorization: Bearer <token>
+GET  /api/jwt/{state}/profile                 # header: X-Auth-Token: <token>
 ```
 
 Usuarios: alicia/password123, roberto/password456, carlos/password789, admin/admin
@@ -92,7 +92,7 @@ POST /api/prompt-injection/{state}/summarize  # body: {"text": "..."}
 ```
 GET    /api/monitor/events[?vulnerability=X&state=Y]
 GET    /api/monitor/stats
-DELETE /api/monitor/events
+POST   /api/monitor/events/clear
 ```
 
 ### Visor de diffs

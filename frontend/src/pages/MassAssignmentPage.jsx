@@ -149,7 +149,7 @@ function MassAssignmentPage() {
           <div className="attack-config">
             <div className="form-group">
               <label>Campos legítimos (siempre incluidos)</label>
-              <input type="text" placeholder="name" value={fields.name} onChange={e => setFields(p => ({ ...p, name: e.target.value }))} />
+              <input type="text" placeholder="nombre" value={fields.name} onChange={e => setFields(p => ({ ...p, name: e.target.value }))} />
             </div>
             <div className="form-group">
               <label>Campos protegidos a inyectar</label>
