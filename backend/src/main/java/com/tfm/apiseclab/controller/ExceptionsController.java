@@ -45,6 +45,8 @@ public class ExceptionsController {
                                 " tabla=user_profiles esquema=PUBLIC datasource=jdbc:h2:mem:apiseclab"));
             }
         } catch (Exception e) {
+            monitorService.recordEvent("EXCEPTIONS", "vulnerable", true,
+                    "Stack trace y serverInfo expuestos en error: input='" + userIdStr + "'", request);
             return ResponseEntity.status(500).body(Map.of(
                     "error", e.getMessage(),
                     "type", e.getClass().getName(),
@@ -54,7 +56,8 @@ public class ExceptionsController {
                             "javaVersion", System.getProperty("java.version"),
                             "osName", System.getProperty("os.name"),
                             "userDir", System.getProperty("user.dir")
-                    )
+                    ),
+                    "oracle", new OracleResult("vulnerable", null, null, true, "ATTACK_SUCCESS")
             ));
         }
 

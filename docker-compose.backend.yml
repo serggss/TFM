@@ -6,9 +6,3 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=default
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/api/monitor/events"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
