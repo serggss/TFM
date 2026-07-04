@@ -1,0 +1,8 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    extra_hosts:
+      - "backend:host-gateway"

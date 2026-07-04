@@ -2,41 +2,55 @@
 
 Laboratorio educativo de vulnerabilidades en APIs REST con modelo de tres estados (vulnerable / partial / fixed) y capa de observación con fingerprinting de clientes.
 
-## Requisitos
+## Arranque rápido (Docker — recomendado)
 
-- Java 21 (LTS)
-- Maven 3.9+
-- Node.js 20+
-- Docker y Docker Compose (opcional)
-
-## Arranque rápido
-
-### Backend
+Requisito: [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y corriendo.
 
 ```bash
-cd backend
-mvn spring-boot:run
+git clone <url-del-repo>
+cd api-security-lab
+docker compose up --build
 ```
 
-Backend en http://localhost:8080
+El primer build tarda ~3-5 minutos (Maven descarga dependencias). Los siguientes arranques son inmediatos.
 
-### Frontend
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8080
+
+El frontend espera automáticamente a que el backend esté listo antes de arrancar.
+
+### Solo el backend
 
 ```bash
+docker compose -f docker-compose.backend.yml up --build
+```
+
+Útil para probar la API con Postman, curl o cualquier cliente externo.
+
+### Solo el frontend
+
+```bash
+docker compose -f docker-compose.frontend.yml up --build
+```
+
+Requiere que el backend esté corriendo en `localhost:8080` (ya sea con `mvn spring-boot:run` o con el compose del backend). El nginx del contenedor redirige `/api/` al host automáticamente.
+
+## Arranque sin Docker (desarrollo local)
+
+Requisitos: Java 21, Maven 3.9+, Node.js 20+
+
+```bash
+# Terminal 1 — backend
+cd backend
+mvn spring-boot:run
+# → http://localhost:8080
+
+# Terminal 2 — frontend
 cd frontend
 npm install
 npm run dev
+# → http://localhost:5173
 ```
-
-Frontend en http://localhost:5173
-
-### Docker
-
-```bash
-docker-compose up --build
-```
-
-Frontend: http://localhost:3000 · Backend: http://localhost:8080
 
 ## Catálogo de vulnerabilidades (6/6 implementadas)
 
@@ -119,4 +133,4 @@ GET /api/vulnerabilities/{slug}
 
 - Backend: Java 21, Spring Boot 4.1.0, Maven, H2 en memoria, JJWT
 - Frontend: React 19, Vite 6, React Router 7
-- Despliegue: Docker + docker-compose
+- Despliegue: Docker + Docker Compose v2
