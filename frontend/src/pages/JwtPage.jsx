@@ -1,6 +1,28 @@
 import { useState } from 'react';
 import CurlCommand from '../components/CurlCommand';
 import MitigationAnalysis from '../components/MitigationAnalysis';
+import PartialDropdown from '../components/PartialDropdown';
+
+const PARTIAL_OPTIONS = [
+  {
+    value: 'partial-alg-none',
+    label: 'Acepta alg=none',
+    shortLabel: 'alg=none',
+    description: 'Verifica firma HS256 pero acepta tokens con alg=none. Bypass: forjar token sin firma.',
+  },
+  {
+    value: 'partial-weak-key',
+    label: 'Clave de firma débil',
+    shortLabel: 'Clave débil',
+    description: 'Rechaza alg=none pero usa una clave predecible. Bypass: crackear la clave offline y reforjar con role=admin.',
+  },
+  {
+    value: 'partial-no-exp',
+    label: 'Sin validación de expiración',
+    shortLabel: 'Sin exp',
+    description: 'Clave fuerte y alg correcto, pero ignora exp. Bypass: reutilizar un token expirado indefinidamente.',
+  },
+];
 
 function TokenDecoder({ token, label, highlight }) {
   if (!token) return null;
@@ -25,7 +47,8 @@ function TokenDecoder({ token, label, highlight }) {
         {parts.map((part, i) => (
           <span key={i}>
             {i > 0 && <span style={{ color: 'var(--text-muted)' }}>.</span>}
-            <span style={{ color: colors[i], fontWeight: highlight === i ? 800 : 400,
+            <span style={{
+              color: colors[i], fontWeight: highlight === i ? 800 : 400,
               backgroundColor: highlight === i ? colors[i] + '22' : 'transparent',
               padding: highlight === i ? '0 2px' : 0, borderRadius: 2,
             }}>{part || '(vacío)'}</span>
@@ -78,12 +101,24 @@ function BehindTheScenes({ state }) {
 String payload = Base64.decode(token.split(".")[1]);
 Map claims = parseJson(payload);
 // → Acepta cualquier token, firmado o no`,
-    partial: `// Verifica firma HS256... pero acepta alg=none
+    'partial-alg-none': `// Verifica firma HS256... pero acepta alg=none
 if (header.alg == "none") {
     return parseJson(payload);  // ← BYPASS: sin firma
 }
 // Tokens normales sí se verifican correctamente
 return Jwts.parser().verifyWith(KEY).parse(token);`,
+    'partial-weak-key': `// Rechaza alg=none, verifica firma... pero con clave débil
+private static final String SECRET = "weak-secret-key-please-change-me";
+private static final SecretKey KEY = Keys.hmacShaKeyFor(SECRET.getBytes());
+// → La clave es predecible y está en listas de diccionario
+// → hashcat -m 16500 <token> wordlist.txt → clave crackeada en segundos`,
+    'partial-no-exp': `// Firma verificada con clave correcta... pero ignora exp
+try {
+    return Jwts.parser().verifyWith(KEY).parse(token).getPayload();
+} catch (ExpiredJwtException e) {
+    return e.getClaims(); // ← BYPASS: token expirado = aceptado
+}
+// → Un token robado es válido para siempre`,
     fixed: `// Solo acepta HS256 con la clave correcta
 Claims claims = Jwts.parser()
     .verifyWith(KEY)          // Algoritmo fijo
@@ -98,12 +133,12 @@ Claims claims = Jwts.parser()
       border: '1px solid var(--border-color)', marginTop: '0.75rem',
     }}>
       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>
-        Qué hace el servidor en estado {state}:
+        Qué hace el servidor en este estado:
       </div>
       <pre style={{
         margin: 0, fontFamily: 'var(--font-mono)', fontSize: '0.78rem',
         color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.5,
-      }}>{code[state]}</pre>
+      }}>{code[state] || code['partial-alg-none']}</pre>
     </div>
   );
 }
@@ -119,6 +154,8 @@ function JwtPage() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
 
+  const isPartial = state.startsWith('partial');
+
   const explanations = {
     vulnerable: {
       title: 'Sin verificación de firma',
@@ -126,19 +163,66 @@ function JwtPage() {
       color: 'text-vulnerable',
       attackHint: 'Prueba a forjar un token con role=admin en el paso 2. El servidor lo aceptará sin comprobar la firma.',
     },
-    partial: {
+    'partial-alg-none': {
       title: 'Acepta alg=none (bypass)',
       description: 'La firma se verifica para tokens HS256, pero el servidor también acepta tokens con alg=none. El atacante cambia el header a alg:none y elimina la firma.',
       color: 'text-partial',
       attackHint: 'El token forjado usa alg=none. En este estado el servidor lo acepta porque no rechaza ese algoritmo.',
     },
+    'partial-weak-key': {
+      title: 'Clave de firma predecible',
+      description: 'El servidor rechaza alg=none y verifica la firma HS256 correctamente, pero la clave secreta es débil y predecible. Un atacante la crackea offline.',
+      color: 'text-partial',
+      attackHint: 'El servidor rechaza tokens sin firma. Pero la clave es "weak-secret-key-please-change-me" — crackeada con diccionario. El token forjado tiene firma válida con role=admin.',
+    },
+    'partial-no-exp': {
+      title: 'Sin validación de expiración',
+      description: 'Clave fuerte y algoritmo correcto, pero el servidor captura ExpiredJwtException y continúa la ejecución. Los tokens expirados son aceptados indefinidamente.',
+      color: 'text-partial',
+      attackHint: 'alg=none y clave débil están bloqueados. Pero un token expirado obtenido hace 1 hora sigue funcionando. Un token robado nunca pierde validez.',
+    },
     fixed: {
       title: 'Verificación estricta',
       description: 'Solo acepta HS256 con la clave correcta. Verifica issuer, expiración, y rechaza alg=none.',
       color: 'text-fixed',
-      attackHint: 'Intenta enviar el token forjado. El servidor lo rechazará con 403.',
+      attackHint: 'Intenta enviar cualquier token forjado o expirado. El servidor los rechazará con 403.',
     },
   };
+
+  const step2Config = {
+    'partial-alg-none': {
+      title: 'Forjar token con alg=none (sin firma)',
+      description: 'El ataque alg=none funciona así: se cambia el header para indicar que no hay firma, se modifica el payload (role → admin), y se elimina la firma.',
+      btnLabel: 'Forjar token con alg=none y role=admin',
+      forgeEndpoint: () => `/api/auth/forge-none/${userIdMap[username] || 2}`,
+      tokenField: 'forgedToken',
+      highlight: 2,
+      tokenLabel: 'Token FORJADO (sin firma, role=admin):',
+      warning: 'Header: alg: "HS256" → alg: "none" · Payload: role: "user" → role: "admin" · Signature: eliminada',
+    },
+    'partial-weak-key': {
+      title: 'Obtener token con clave crackeada (role=admin)',
+      description: 'El atacante tomó un token legítimo, lo sometió a un ataque de diccionario offline con hashcat y encontró la clave. Ahora reforja un token con role=admin firmado correctamente.',
+      btnLabel: 'Obtener token forjado con clave crackeada',
+      forgeEndpoint: () => `/api/auth/forge-weak-key/${userIdMap[username] || 2}`,
+      tokenField: 'forgedToken',
+      highlight: 2,
+      tokenLabel: 'Token forjado con clave débil (role=admin, firma VÁLIDA):',
+      warning: 'La firma es criptográficamente correcta. El servidor la verifica y la acepta. El ataque es la clave débil, no la ausencia de firma.',
+    },
+    'partial-no-exp': {
+      title: 'Obtener token expirado (simulación de robo)',
+      description: 'El servidor genera un token con firma válida pero fecha de expiración ya pasada. Simula un token robado que debería haber caducado.',
+      btnLabel: 'Obtener token expirado (firmado con clave correcta)',
+      forgeEndpoint: () => `/api/auth/forge-expired/${userIdMap[username] || 2}`,
+      tokenField: 'forgedToken',
+      highlight: 0,
+      tokenLabel: 'Token EXPIRADO (firma válida, exp en el pasado):',
+      warning: 'La firma es válida. El problema: exp es una fecha pasada. En partial-no-exp el servidor lo acepta igualmente.',
+    },
+  };
+
+  const userIdMap = { alicia: 1, roberto: 2, carlos: 3 };
 
   const login = async () => {
     setLoading(true);
@@ -156,17 +240,16 @@ function JwtPage() {
         setResponse(null);
         setStep(2);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   const forgeToken = async () => {
-    const userIdMap = { alicia: 1, roberto: 2, carlos: 3 };
-    const res = await fetch(`/api/auth/forge-none/${userIdMap[username] || 2}`);
+    const cfg = step2Config[state];
+    if (!cfg) return;
+    const res = await fetch(cfg.forgeEndpoint());
     const data = await res.json();
-    setForgedToken(data.forgedToken);
+    setForgedToken(data[cfg.tokenField] || data.forgedToken);
     setUseForged(true);
     setStep(3);
   };
@@ -186,11 +269,22 @@ function JwtPage() {
     setLoading(false);
   };
 
+  const handleStateChange = (newState) => {
+    setState(newState);
+    setResponse(null);
+    setForgedToken(null);
+    setUseForged(false);
+    setStep(token ? 2 : 1);
+  };
+
   const getVerdictClass = (verdict) => {
     if (verdict === 'ATTACK_SUCCESS') return 'verdict verdict-success';
     if (verdict === 'ATTACK_BLOCKED') return 'verdict verdict-blocked';
     return 'verdict verdict-legitimate';
   };
+
+  const currentStep2 = step2Config[state];
+  const exp = explanations[state] || explanations['partial-alg-none'];
 
   return (
     <div>
@@ -202,20 +296,28 @@ function JwtPage() {
       </p>
 
       <div className="state-selector">
-        {['vulnerable', 'partial', 'fixed'].map(s => (
-          <button key={s}
-            className={`state-btn ${state === s ? `active-${s}` : ''}`}
-            onClick={() => { setState(s); setResponse(null); }}>
-            {s.charAt(0).toUpperCase() + s.slice(1)}
-          </button>
-        ))}
+        <button
+          className={`state-btn ${state === 'vulnerable' ? 'active-vulnerable' : ''}`}
+          onClick={() => handleStateChange('vulnerable')}>
+          Vulnerable
+        </button>
+        <PartialDropdown
+          options={PARTIAL_OPTIONS}
+          selected={isPartial ? state : null}
+          onSelect={handleStateChange}
+        />
+        <button
+          className={`state-btn ${state === 'fixed' ? 'active-fixed' : ''}`}
+          onClick={() => handleStateChange('fixed')}>
+          Fixed
+        </button>
       </div>
 
       <div className="explanation-panel">
-        <h3 className={explanations[state].color}>{explanations[state].title}</h3>
-        <p>{explanations[state].description}</p>
+        <h3 className={exp.color}>{exp.title}</h3>
+        <p>{exp.description}</p>
         <p style={{ marginTop: '0.5rem', fontStyle: 'italic', color: 'var(--color-accent)', fontSize: '0.85rem' }}>
-          {explanations[state].attackHint}
+          {exp.attackHint}
         </p>
         <BehindTheScenes state={state} />
       </div>
@@ -251,56 +353,53 @@ function JwtPage() {
         {token && <TokenDecoder token={token} label="Token legítimo recibido (firmado con HS256):" />}
       </StepCard>
 
-      <StepCard number={2} title="Forjar un token malicioso (ataque alg=none)" active={step >= 2} done={!!forgedToken}>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-          El ataque <code>alg=none</code> funciona así: se cambia el header del token para indicar que
-          no tiene firma (<code>"alg":"none"</code>), se modifica el payload (ej: <code>role → admin</code>),
-          y se elimina la firma. Si el servidor no valida el algoritmo, acepta el token.
-        </p>
-        <button className="btn-attack" onClick={forgeToken} style={{ backgroundColor: 'var(--color-vulnerable)' }}>
-          Forjar token con alg=none y role=admin
-        </button>
-        {forgedToken && (
-          <div style={{ marginTop: '1rem' }}>
-            <TokenDecoder token={forgedToken} label="Token FORJADO (sin firma, role=admin):" highlight={2} />
-            <div style={{
-              backgroundColor: 'rgba(231,76,60,0.1)', border: '1px solid var(--color-vulnerable)',
-              borderRadius: '6px', padding: '0.75rem', fontSize: '0.85rem', color: 'var(--color-vulnerable)',
-            }}>
-              Cambios respecto al token legítimo:
-              <ul style={{ margin: '0.3rem 0 0 1.2rem', lineHeight: 1.6 }}>
-                <li>Header: <code>alg: "HS256"</code> → <code>alg: "none"</code></li>
-                <li>Payload: <code>role: "user"</code> → <code>role: "admin"</code></li>
-                <li>Signature: eliminada (vacía)</li>
-              </ul>
+      {isPartial && currentStep2 && (
+        <StepCard number={2} title={currentStep2.title} active={step >= 2} done={!!forgedToken}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+            {currentStep2.description}
+          </p>
+          <button className="btn-attack" onClick={forgeToken} style={{ backgroundColor: 'var(--color-vulnerable)' }}>
+            {currentStep2.btnLabel}
+          </button>
+          {forgedToken && (
+            <div style={{ marginTop: '1rem' }}>
+              <TokenDecoder token={forgedToken} label={currentStep2.tokenLabel} highlight={currentStep2.highlight} />
+              <div style={{
+                backgroundColor: 'rgba(231,76,60,0.1)', border: '1px solid var(--color-vulnerable)',
+                borderRadius: '6px', padding: '0.75rem', fontSize: '0.85rem', color: 'var(--color-vulnerable)',
+              }}>
+                {currentStep2.warning}
+              </div>
             </div>
-          </div>
-        )}
-      </StepCard>
+          )}
+        </StepCard>
+      )}
 
-      <StepCard number={3} title="Enviar el token al servidor y ver el resultado" active={step >= 3} done={!!response}>
+      <StepCard number={isPartial ? 3 : 2} title="Enviar el token al servidor y ver el resultado" active={isPartial ? step >= 3 : step >= 2} done={!!response}>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
           Envía el token al endpoint <code>/api/jwt/{state}/profile</code> en la cabecera
           <code> X-Auth-Token</code> y observa si el servidor lo acepta o rechaza.
         </p>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-            <input type="radio" checked={!useForged} onChange={() => setUseForged(false)} />
-            Enviar token <strong style={{ color: 'var(--color-fixed)' }}>legítimo</strong>
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-            <input type="radio" checked={useForged} onChange={() => setUseForged(true)} disabled={!forgedToken} />
-            Enviar token <strong style={{ color: 'var(--color-vulnerable)' }}>forjado</strong> (alg=none, role=admin)
-          </label>
-        </div>
+        {isPartial && (
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+              <input type="radio" checked={!useForged} onChange={() => setUseForged(false)} />
+              Enviar token <strong style={{ color: 'var(--color-fixed)' }}>legítimo</strong>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+              <input type="radio" checked={useForged} onChange={() => setUseForged(true)} disabled={!forgedToken} />
+              Enviar token <strong style={{ color: 'var(--color-vulnerable)' }}>de ataque</strong>
+            </label>
+          </div>
+        )}
         <div style={{
           fontFamily: 'var(--font-mono)', fontSize: '0.8rem', padding: '0.6rem',
           backgroundColor: 'var(--bg-primary)', borderRadius: '4px', marginBottom: '0.75rem',
           border: '1px solid var(--border-color)', color: 'var(--text-secondary)',
         }}>
-          GET /api/jwt/<strong style={{ color: 'var(--color-accent)' }}>{state}</strong>/profile<br/>
+          GET /api/jwt/<strong style={{ color: 'var(--color-accent)' }}>{state}</strong>/profile<br />
           X-Auth-Token: <span style={{ color: useForged ? 'var(--color-vulnerable)' : 'var(--color-fixed)' }}>
-            {useForged ? '(token forjado)' : '(token legítimo)'}
+            {useForged ? '(token de ataque)' : '(token legítimo)'}
           </span>
         </div>
         <button className="btn-attack" onClick={sendToken} disabled={loading}>
@@ -312,9 +411,9 @@ function JwtPage() {
           <div style={{ marginTop: '1rem' }}>
             <div className="response-viewer">
               <div className="response-header">
-                <span className="response-status" style={{
-                  color: response.ok ? 'var(--color-fixed)' : 'var(--color-vulnerable)'
-                }}>HTTP {response.status}</span>
+                <span className="response-status" style={{ color: response.ok ? 'var(--color-fixed)' : 'var(--color-vulnerable)' }}>
+                  HTTP {response.status}
+                </span>
                 {response.data?.oracle?.verdict && (
                   <span className={getVerdictClass(response.data.oracle.verdict)}>
                     {response.data.oracle.verdict}
@@ -329,7 +428,7 @@ function JwtPage() {
                 backgroundColor: 'rgba(231,76,60,0.1)', border: '1px solid var(--color-vulnerable)',
                 fontSize: '0.85rem', color: 'var(--color-vulnerable)',
               }}>
-                El servidor aceptó el token forjado. El atacante tiene acceso como admin sin conocer la clave secreta.
+                El servidor aceptó el token de ataque. La mitigación parcial tiene un bypass explotable.
               </div>
             )}
             {response.data?.oracle?.verdict === 'ATTACK_BLOCKED' && (
@@ -338,7 +437,7 @@ function JwtPage() {
                 backgroundColor: 'rgba(46,204,113,0.1)', border: '1px solid var(--color-fixed)',
                 fontSize: '0.85rem', color: 'var(--color-fixed)',
               }}>
-                El servidor rechazó el token forjado. La verificación estricta de firma funciona correctamente.
+                El servidor rechazó el token. La verificación funciona correctamente para este tipo de ataque.
               </div>
             )}
           </div>

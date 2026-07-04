@@ -17,10 +17,26 @@ const ANALYSIS = {
       seemsSecure: 'Si un atacante modifica el payload de un token firmado con HS256 (ej: cambia role a admin), la firma no coincide y el servidor lo rechaza con 403.',
       bypass: 'El servidor también acepta tokens con alg=none en el header. El atacante cambia el header a {"alg":"none"}, modifica el payload (role=admin), elimina la firma, y el servidor lo acepta porque no rechaza el algoritmo "none". Este es un ataque documentado en OWASP y CVEs reales.',
     },
+    'partial-alg-none': {
+      corrected: 'Se añade verificación de firma HMAC para tokens con algoritmo HS256. Los tokens con firma incorrecta son rechazados.',
+      seemsSecure: 'Si un atacante modifica el payload de un token firmado con HS256 (ej: cambia role a admin), la firma no coincide y el servidor lo rechaza con 403.',
+      bypass: 'El servidor también acepta tokens con alg=none en el header. El atacante cambia el header a {"alg":"none"}, modifica el payload (role=admin), elimina la firma, y el servidor lo acepta porque no rechaza el algoritmo "none". Este es un ataque documentado en OWASP y CVEs reales (CWE-347).',
+    },
+    'partial-weak-key': {
+      corrected: 'Se rechaza explícitamente alg=none. El servidor exige HS256 y verifica la firma criptográficamente. Un token sin firma o con alg=none es rechazado con 403.',
+      seemsSecure: 'El ataque alg=none está completamente bloqueado. Un atacante no puede forjar un token sin firma. Las herramientas de escaneo que prueban alg=none fallan. La verificación de firma parece sólida.',
+      bypass: 'La clave secreta usada para firmar es una cadena predecible hardcodeada. Un atacante obtiene cualquier token legítimo (del propio login), lo somete a un ataque de diccionario offline con hashcat (-m 16500) o john, encuentra la clave, y reforja un nuevo token con role=admin firmado correctamente. La firma es válida, el servidor la acepta.',
+    },
+    'partial-no-exp': {
+      corrected: 'Se rechaza alg=none y se usa una clave fuerte no predecible. La firma HMAC-SHA256 es criptográficamente sólida. Un ataque de diccionario sobre la clave no tiene éxito en tiempo razonable.',
+      seemsSecure: 'Los ataques de firma (alg=none y clave débil) están bloqueados. El servidor verifica correctamente la integridad criptográfica del token. Solo el servidor puede emitir tokens válidos.',
+      bypass: 'El servidor captura ExpiredJwtException y continúa la ejecución con los claims del token caducado. Un atacante que roba un token válido (vía XSS, logs mal configurados, red no cifrada) puede usarlo indefinidamente después de que expire. Los tokens deberían tener una ventana de validez estricta; capturar la excepción de expiración y continuar anula completamente el propósito del campo exp.',
+    },
     fixed: {
-      changed: 'Se fuerza el algoritmo HS256 en el parser (no es negociable por el cliente). Se valida el issuer y la expiración del token.',
-      blocksBypass: 'Jwts.parser().verifyWith(KEY) solo acepta tokens firmados con la clave correcta. Un token con alg=none se rechaza porque el parser exige firma HS256. No hay forma de saltarse la verificación sin conocer la clave secreta.',
-      complexity: 'El algoritmo debe ser una decisión del servidor, nunca del cliente. La clave debe ser suficientemente larga (≥256 bits para HS256). Los claims temporales (exp, iat) y de audiencia (iss, aud) deben validarse siempre.',
+      changedTitle: 'Qué se ha cambiado respecto a los tres parciales',
+      changed: 'Se fuerza el algoritmo HS256 (no negociable por el cliente), se usa una clave fuerte generada aleatoriamente, y se validan issuer y expiración. ExpiredJwtException no se captura: el token expirado resulta en 403.',
+      blocksBypass: 'Cada vector queda bloqueado de forma independiente: alg=none → rechazado por el parser. Clave débil → la clave es de 256 bits aleatorios, no está en ningún diccionario. Token expirado → la excepción no se captura, el acceso se deniega.',
+      complexity: 'El algoritmo debe ser una decisión del servidor, nunca del cliente. La clave debe generarse aleatoriamente con al menos 256 bits. exp, iat e iss deben validarse siempre. Las excepciones de validación JWT no deben capturarse para continuar: son señales de que el token es inválido.',
     },
   },
   cors: {
@@ -53,10 +69,21 @@ const ANALYSIS = {
       seemsSecure: 'Si Roberto (role=user) envía X-User-Id: 2, recibe 403. Solo el admin (id=4) tiene acceso. Los tests funcionales del happy path pasan correctamente.',
       bypass: 'La variable isAuthorized se inicializa a true en vez de false. Si X-User-Id contiene un valor no numérico (ej: "abc"), Long.parseLong() lanza NumberFormatException. El catch no corrige isAuthorized, que queda en true → la petición pasa. Es un fail-open: ante una excepción inesperada, el sistema deja pasar en vez de denegar.',
     },
+    'partial-fail-open': {
+      corrected: 'Se añade verificación de autorización: se parsea X-User-Id, se busca el usuario en BD, y se comprueba que su role sea "admin".',
+      seemsSecure: 'Si Roberto (role=user) envía X-User-Id: 2, recibe 403. Solo el admin (id=4) tiene acceso. Los tests funcionales del happy path pasan correctamente.',
+      bypass: 'La variable isAuthorized se inicializa a true en vez de false. Si X-User-Id contiene un valor no numérico (ej: "abc"), Long.parseLong() lanza NumberFormatException. El catch no corrige isAuthorized, que queda en true → la petición pasa. Es un fail-open clásico: ante una excepción inesperada, el sistema concede acceso en lugar de denegarlo.',
+    },
+    'partial-info-leak': {
+      corrected: 'Se corrige el fallo de autorización: isAuthorized se inicializa a false (fail-closed). Solo el admin real (id=4) puede acceder. Cualquier excepción en el bloque de autorización mantiene el acceso denegado.',
+      seemsSecure: 'El control de acceso funciona correctamente en todos los casos del happy path y en los de error: "abc" no entra, "999" no entra, roberto no entra. Los tests de autorización pasan. La superficie de ataque principal parece cerrada.',
+      bypass: 'Aunque no se gana acceso a los datos, las excepciones devuelven información interna del servidor: versión exacta de Java, nombre del OS, ruta del proceso (user.dir), nombre de la tabla en BD, URL del datasource con esquema. Un atacante usa estos datos para adaptar exploits, detectar vulnerabilidades específicas de versión, o mapear la infraestructura interna. La divulgación de información es una vulnerabilidad independiente del control de acceso (A10:2025).',
+    },
     fixed: {
-      changed: 'isAuthorized se inicializa a false (fail-closed). Cualquier excepción en el bloque de autorización deja isAuthorized en false → acceso denegado. Los mensajes de error son genéricos, sin detalles internos.',
-      blocksBypass: 'No importa qué valor envíe el atacante: si causa una excepción, el acceso se deniega. El único camino para obtener acceso es un parseo exitoso + usuario encontrado en BD + role=admin. Todo lo demás resulta en 403.',
-      complexity: 'Las variables de autorización deben defaultear a DENY siempre. Los catch blocks en código de seguridad deben ser fail-closed. Nunca exponer stack traces, nombres de clases o rutas internas en respuestas de error.',
+      changedTitle: 'Qué se ha cambiado respecto a los dos parciales',
+      changed: 'isAuthorized se inicializa a false (fail-closed). Cualquier excepción deja el acceso denegado. Los mensajes de error son genéricos: "Acceso denegado" sin detalles internos. No se exponen stack traces, versiones ni rutas.',
+      blocksBypass: 'Fail-open bloqueado: isAuthorized=false siempre. Info leak bloqueado: los catch devuelven mensajes genéricos sin datos del sistema. El único camino al éxito es: parseo correcto + usuario existe + role=admin. Todo lo demás resulta en 403 sin información adicional.',
+      complexity: 'Las variables de autorización deben inicializarse siempre a DENY. Los catch blocks en código de seguridad no deben exponer información del sistema. Los mensajes de error para el cliente deben ser genéricos; el detalle debe ir a logs internos, nunca a la respuesta HTTP.',
     },
   },
   'prompt-injection': {
@@ -79,8 +106,8 @@ function MitigationAnalysis({ slug, state }) {
   const data = ANALYSIS[slug];
   if (!data) return null;
 
-  if (state === 'partial') {
-    const d = data.partial;
+  if (state.startsWith('partial')) {
+    const d = data[state] || data.partial;
     return (
       <div style={{
         border: '2px solid var(--color-partial)', borderRadius: '8px',
@@ -119,7 +146,7 @@ function MitigationAnalysis({ slug, state }) {
           </span>
         </div>
         <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <Section title="Qué se ha cambiado respecto a partial" color="var(--color-accent)" text={d.changed} />
+          <Section title={d.changedTitle || 'Qué se ha cambiado respecto a partial'} color="var(--color-accent)" text={d.changed} />
           <Section title="Por qué bloquea el bypass" color="var(--color-fixed)" text={d.blocksBypass} />
           <Section title="Complejidad añadida" color="var(--color-partial)" text={d.complexity} />
         </div>

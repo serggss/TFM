@@ -67,8 +67,8 @@ public class ExceptionsController {
         ));
     }
 
-    @GetMapping("/partial/admin/config")
-    public ResponseEntity<?> configPartial(
+    @GetMapping({"/partial/admin/config", "/partial-fail-open/admin/config"})
+    public ResponseEntity<?> configPartialFailOpen(
             @RequestHeader(value = "X-User-Id", required = false) String userIdStr,
             HttpServletRequest request) {
 
@@ -84,7 +84,7 @@ public class ExceptionsController {
                 isAuthorized = "admin".equals(user.getRole());
             }
         } catch (Exception e) {
-            monitorService.recordEvent("EXCEPTIONS", "partial", true,
+            monitorService.recordEvent("EXCEPTIONS", "partial-fail-open", true,
                     String.format("Fail-open: excepción '%s' con input '%s' — isAuthorized quedó en true",
                             e.getClass().getSimpleName(), userIdStr),
                     request);
@@ -96,17 +96,17 @@ public class ExceptionsController {
                             "type", e.getClass().getName(),
                             "input", userIdStr
                     ),
-                    "oracle", new OracleResult("partial", null, null, true, "ATTACK_SUCCESS"),
-                    "_explanation", "fail-open: isAuthorized defaulted to true, exception skipped the check"
+                    "oracle", new OracleResult("partial-fail-open", null, null, true, "ATTACK_SUCCESS"),
+                    "_explanation", "fail-open: isAuthorized=true por defecto, la excepción saltó el check"
             ));
         }
 
         if (!isAuthorized) {
-            monitorService.recordEvent("EXCEPTIONS", "partial", false,
+            monitorService.recordEvent("EXCEPTIONS", "partial-fail-open", false,
                     "Acceso denegado correctamente en happy path", request);
             return ResponseEntity.status(403).body(Map.of(
                     "error", "Acceso denegado",
-                    "oracle", new OracleResult("partial", null, null, false, "ATTACK_BLOCKED")
+                    "oracle", new OracleResult("partial-fail-open", null, null, false, "ATTACK_BLOCKED")
             ));
         }
 
@@ -116,13 +116,74 @@ public class ExceptionsController {
             isAdmin = userRepository.findById(uid).map(u -> "admin".equals(u.getRole())).orElse(false);
         } catch (Exception ignored) {}
 
-        monitorService.recordEvent("EXCEPTIONS", "partial", !isAdmin,
+        monitorService.recordEvent("EXCEPTIONS", "partial-fail-open", !isAdmin,
                 isAdmin ? "Acceso admin legítimo" : "Fail-open: acceso concedido por default true", request);
 
         return ResponseEntity.ok(Map.of(
                 "config", ADMIN_CONFIG,
-                "oracle", new OracleResult("partial", null, null, true,
+                "oracle", new OracleResult("partial-fail-open", null, null, true,
                         isAdmin ? "LEGITIMATE_ACCESS" : "ATTACK_SUCCESS")
+        ));
+    }
+
+    @GetMapping("/partial-info-leak/admin/config")
+    public ResponseEntity<?> configPartialInfoLeak(
+            @RequestHeader(value = "X-User-Id", required = false) String userIdStr,
+            HttpServletRequest request) {
+
+        boolean isAuthorized = false;
+
+        try {
+            if (userIdStr == null) {
+                isAuthorized = false;
+            } else {
+                Long userId = Long.parseLong(userIdStr);
+                UserProfile user = userRepository.findById(userId).orElseThrow(
+                        () -> new RuntimeException(
+                                "Usuario con id=" + userId + " no encontrado en tabla USER_PROFILES" +
+                                " del esquema PUBLIC en datasource jdbc:h2:mem:apiseclab"));
+                isAuthorized = "admin".equals(user.getRole());
+            }
+        } catch (NumberFormatException e) {
+            monitorService.recordEvent("EXCEPTIONS", "partial-info-leak", true,
+                    "Info interna filtrada en error de parsing: input='" + userIdStr + "'", request);
+            return ResponseEntity.status(400).body(Map.of(
+                    "error", "Error de parseo: " + e.getClass().getName() + " para input '" + userIdStr + "'",
+                    "stackTrace", Arrays.stream(e.getStackTrace()).limit(6)
+                            .map(StackTraceElement::toString).toList(),
+                    "serverInfo", Map.of(
+                            "javaVersion", System.getProperty("java.version"),
+                            "osName", System.getProperty("os.name"),
+                            "userDir", System.getProperty("user.dir")
+                    ),
+                    "oracle", new OracleResult("partial-info-leak", null, null, false, "ATTACK_SUCCESS"),
+                    "_explanation", "Acceso denegado, pero el error expone versión Java, OS y rutas internas"
+            ));
+        } catch (RuntimeException e) {
+            monitorService.recordEvent("EXCEPTIONS", "partial-info-leak", true,
+                    "Info interna filtrada en error de BD: " + e.getMessage(), request);
+            return ResponseEntity.status(404).body(Map.of(
+                    "error", e.getMessage(),
+                    "oracle", new OracleResult("partial-info-leak", null, null, false, "ATTACK_SUCCESS"),
+                    "_explanation", "Acceso denegado, pero el error revela estructura interna de la BD"
+            ));
+        }
+
+        if (!isAuthorized) {
+            monitorService.recordEvent("EXCEPTIONS", "partial-info-leak", false,
+                    "Acceso denegado (usuario sin rol admin)", request);
+            return ResponseEntity.status(403).body(Map.of(
+                    "error", "Acceso denegado",
+                    "oracle", new OracleResult("partial-info-leak", null, null, false, "ATTACK_BLOCKED")
+            ));
+        }
+
+        monitorService.recordEvent("EXCEPTIONS", "partial-info-leak", false,
+                "Acceso admin legítimo", request);
+
+        return ResponseEntity.ok(Map.of(
+                "config", ADMIN_CONFIG,
+                "oracle", new OracleResult("partial-info-leak", null, null, true, "LEGITIMATE_ACCESS")
         ));
     }
 
@@ -147,16 +208,14 @@ public class ExceptionsController {
         }
 
         if (!isAuthorized) {
-            monitorService.recordEvent("EXCEPTIONS", "fixed", false,
-                    "Acceso denegado (fail-closed)", request);
+            monitorService.recordEvent("EXCEPTIONS", "fixed", false, "Acceso denegado (fail-closed)", request);
             return ResponseEntity.status(403).body(Map.of(
                     "error", "Acceso denegado",
                     "oracle", new OracleResult("fixed", null, null, false, "ATTACK_BLOCKED")
             ));
         }
 
-        monitorService.recordEvent("EXCEPTIONS", "fixed", false,
-                "Acceso admin legítimo", request);
+        monitorService.recordEvent("EXCEPTIONS", "fixed", false, "Acceso admin legítimo", request);
 
         return ResponseEntity.ok(Map.of(
                 "config", ADMIN_CONFIG,

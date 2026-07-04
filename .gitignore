@@ -37,3 +37,4 @@ docker-compose.override.yml
 *.db
 *.mv.db
 *.trace.db
+tfm_codigo_21-06.zip
