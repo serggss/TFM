@@ -1,0 +1,15 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - SPRING_H2_CONSOLE_ENABLED=false
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
