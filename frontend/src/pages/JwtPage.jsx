@@ -230,6 +230,16 @@ function JwtPage() {
       tokenLabel: 'Token EXPIRADO (firma válida, exp en el pasado):',
       warning: 'La firma es válida. El problema: exp es una fecha pasada. En partial-no-exp el servidor lo acepta igualmente.',
     },
+    fixed: {
+      title: 'Intentar forjar token con alg=none (debe ser bloqueado)',
+      description: 'Mismo ataque que en vulnerable: token sin firma con role=admin. En fixed el servidor exige HS256 con clave correcta, verifica el issuer y la expiración. Cualquier token manipulado recibe un 403.',
+      btnLabel: 'Forjar token con alg=none (ataque que debe fallar)',
+      forgeEndpoint: () => `/api/auth/forge-none/${userIdMap[username] || 2}`,
+      tokenField: 'forgedToken',
+      highlight: 0,
+      tokenLabel: 'Token FORJADO (alg=none, sin firma):',
+      warning: 'Este token funciona en vulnerable y partial-alg-none. En fixed el servidor lo rechaza con 403.',
+    },
   };
 
   const userIdMap = { alicia: 1, roberto: 2, carlos: 3 };
@@ -438,7 +448,9 @@ function JwtPage() {
                 backgroundColor: 'rgba(231,76,60,0.1)', border: '1px solid var(--color-vulnerable)',
                 fontSize: '0.85rem', color: 'var(--color-vulnerable)',
               }}>
-                El servidor aceptó el token de ataque. La mitigación parcial tiene un bypass explotable.
+                {state === 'vulnerable'
+                  ? 'El servidor aceptó el token forjado — no verifica la firma en ningún caso.'
+                  : 'El servidor aceptó el token de ataque. La mitigación parcial tiene un bypass explotable.'}
               </div>
             )}
             {response.data?.oracle?.verdict === 'ATTACK_BLOCKED' && (
