@@ -72,9 +72,9 @@ public class TimingAnalyzer {
         } else if (cv < CV_AUTOMATED_THRESHOLD) {
             pattern = "automatizado";
             reasons.add(String.format("CV=%.2f (< %.1f) → intervalos muy regulares, típico de herramienta automatizada", cv, CV_AUTOMATED_THRESHOLD));
-        } else if (cv > CV_HUMAN_THRESHOLD && !highVolume) {
+        } else if (cv > CV_HUMAN_THRESHOLD) {
             pattern = "manual";
-            reasons.add(String.format("CV=%.2f (> %.1f) con pocas peticiones → interacción humana", cv, CV_HUMAN_THRESHOLD));
+            reasons.add(String.format("CV=%.2f (> %.1f) → alta variabilidad, interacción humana", cv, CV_HUMAN_THRESHOLD));
         } else {
             pattern = "semi-automatizado";
             reasons.add(String.format("CV=%.2f → patrón mixto (herramienta con pausas o humano con scripts)", cv));

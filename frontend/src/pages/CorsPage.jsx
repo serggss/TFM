@@ -67,7 +67,12 @@ function CorsPage() {
   const sendRequest = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/cors/${state}/data`, { headers: { 'Origin': origin } });
+      const res = await fetch(`/api/cors/${state}/data`, {
+        headers: {
+          'Origin': origin,
+          'X-Simulated-Origin': origin,
+        },
+      });
       const data = await res.json();
       setResponse({ status: res.status, ok: res.ok, data });
     } catch (e) {
@@ -113,9 +118,13 @@ function CorsPage() {
 
       <div className="card">
         <h3 className="mb-2">Simular petición cross-origin</h3>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
           Cuando un navegador hace una petición a otro dominio, envía la cabecera <code>Origin</code>.
           El servidor decide si permite el acceso según el valor de <code>Access-Control-Allow-Origin</code> en la respuesta.
+        </p>
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem', fontStyle: 'italic' }}>
+          Nota técnica: los navegadores bloquean que JavaScript sobreescriba la cabecera <code>Origin</code> (es una "forbidden header").
+          En un ataque real, el navegador la envía automáticamente. Aquí la simulamos con <code>X-Simulated-Origin</code>, que el servidor acepta equivalente.
         </p>
         <div className="attack-panel">
           <div className="attack-config">

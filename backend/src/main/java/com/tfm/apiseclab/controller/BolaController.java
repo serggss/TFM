@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -145,11 +146,10 @@ public class BolaController {
      * simplemente listar todo.
      */
     @GetMapping("/vulnerable/accounts")
-    public ResponseEntity<List<Account>> listAccountsVulnerable(
+    public ResponseEntity<?> listAccountsVulnerable(
             @RequestHeader(value = "X-User-Id", required = false) Long userId,
             HttpServletRequest request) {
 
-        // --- FALLO: Devuelve TODAS las cuentas, no solo las del usuario ---
         List<Account> allAccounts = accountRepository.findAll();
 
         monitorService.recordEvent(
@@ -159,7 +159,8 @@ public class BolaController {
             request
         );
 
-        return ResponseEntity.ok(allAccounts);
+        OracleResult oracle = new OracleResult("vulnerable", userId, null, true, "ATTACK_SUCCESS");
+        return ResponseEntity.ok(Map.of("accounts", allAccounts, "oracle", oracle));
     }
 
     // =========================================================================
@@ -298,7 +299,11 @@ public class BolaController {
             request
         );
 
-        return ResponseEntity.ok(accounts);
+        OracleResult oracle = new OracleResult(
+            "partial", userId, effectiveOwnerId, isAttack,
+            isAttack ? "ATTACK_SUCCESS" : "LEGITIMATE_ACCESS"
+        );
+        return ResponseEntity.ok(Map.of("accounts", accounts, "oracle", oracle));
     }
 
     // =========================================================================
@@ -397,7 +402,7 @@ public class BolaController {
         boolean attemptedBypass = ownerId != null && !ownerId.equals(userId);
 
         monitorService.recordEvent(
-            "BOLA", "fixed", false, // nunca tiene éxito el ataque
+            "BOLA", "fixed", false,
             String.format("Búsqueda de cuentas por usuario %d — %s — devueltas %d cuentas propias",
                 userId,
                 attemptedBypass ? "intento de bypass IGNORADO (ownerId=" + ownerId + ")" : "acceso legítimo",
@@ -405,6 +410,10 @@ public class BolaController {
             request
         );
 
-        return ResponseEntity.ok(accounts);
+        OracleResult oracle = new OracleResult(
+            "fixed", userId, ownerId, false,
+            attemptedBypass ? "ATTACK_BLOCKED" : "LEGITIMATE_ACCESS"
+        );
+        return ResponseEntity.ok(Map.of("accounts", accounts, "oracle", oracle));
     }
 }

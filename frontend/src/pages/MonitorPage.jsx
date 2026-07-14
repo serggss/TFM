@@ -151,7 +151,7 @@ function MonitorPage() {
                     <tr key={e.id}>
                       <td className="mono">{formatTime(e.timestamp)}</td>
                       <td><strong>{e.vulnerability}</strong></td>
-                      <td><span className={`state-badge state-badge-${e.state}`}>{e.state}</span></td>
+                      <td><span className={`state-badge state-badge-${e.state.startsWith('partial') ? 'partial' : e.state}`}>{e.state}</span></td>
                       <td className="mono">{e.method}</td>
                       <td className="mono" style={{ fontSize: '0.8rem' }}>{e.endpoint}</td>
                       <td className="mono" style={{ fontSize: '0.8rem' }}>{e.clientFingerprint?.split('|')[0] || '-'}</td>

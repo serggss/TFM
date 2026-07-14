@@ -190,6 +190,16 @@ function JwtPage() {
   };
 
   const step2Config = {
+    vulnerable: {
+      title: 'Forjar token con role=admin (sin firma)',
+      description: 'El servidor no verifica la firma en absoluto — decodifica el payload en base64 y confía en él. Podemos fabricar un token con cualquier payload, incluyendo role=admin.',
+      btnLabel: 'Forjar token con role=admin (sin firma)',
+      forgeEndpoint: () => `/api/auth/forge-none/${userIdMap[username] || 2}`,
+      tokenField: 'forgedToken',
+      highlight: 1,
+      tokenLabel: 'Token FORJADO (payload modificado, sin firma):',
+      warning: 'Payload: role: "user" → role: "admin" · Signature: eliminada · El servidor acepta cualquier payload sin verificar.',
+    },
     'partial-alg-none': {
       title: 'Forjar token con alg=none (sin firma)',
       description: 'El ataque alg=none funciona así: se cambia el header para indicar que no hay firma, se modifica el payload (role → admin), y se elimina la firma.',
@@ -353,7 +363,7 @@ function JwtPage() {
         {token && <TokenDecoder token={token} label="Token legítimo recibido (firmado con HS256):" />}
       </StepCard>
 
-      {isPartial && currentStep2 && (
+      {currentStep2 && (
         <StepCard number={2} title={currentStep2.title} active={step >= 2} done={!!forgedToken}>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
             {currentStep2.description}
@@ -375,12 +385,12 @@ function JwtPage() {
         </StepCard>
       )}
 
-      <StepCard number={isPartial ? 3 : 2} title="Enviar el token al servidor y ver el resultado" active={isPartial ? step >= 3 : step >= 2} done={!!response}>
+      <StepCard number={currentStep2 ? 3 : 2} title="Enviar el token al servidor y ver el resultado" active={currentStep2 ? step >= 3 : step >= 2} done={!!response}>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
           Envía el token al endpoint <code>/api/jwt/{state}/profile</code> en la cabecera
           <code> X-Auth-Token</code> y observa si el servidor lo acepta o rechaza.
         </p>
-        {isPartial && (
+        {currentStep2 && (
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
               <input type="radio" checked={!useForged} onChange={() => setUseForged(false)} />

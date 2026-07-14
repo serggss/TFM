@@ -33,9 +33,17 @@ public class CorsVulnController {
         this.monitorService = monitorService;
     }
 
+    private String resolveOrigin(HttpServletRequest request) {
+        String origin = request.getHeader("Origin");
+        if (origin == null || origin.isBlank()) {
+            origin = request.getHeader("X-Simulated-Origin");
+        }
+        return origin;
+    }
+
     @GetMapping("/vulnerable/data")
     public ResponseEntity<?> dataVulnerable(HttpServletRequest request, HttpServletResponse response) {
-        String origin = request.getHeader("Origin");
+        String origin = resolveOrigin(request);
         if (origin != null && !origin.isBlank()) {
             response.setHeader("Access-Control-Allow-Origin", origin);
         } else {
@@ -66,7 +74,7 @@ public class CorsVulnController {
 
     @GetMapping("/partial/data")
     public ResponseEntity<?> dataPartial(HttpServletRequest request, HttpServletResponse response) {
-        String origin = request.getHeader("Origin");
+        String origin = resolveOrigin(request);
         boolean allowed = false;
 
         if (origin != null && origin.contains("localhost")) {
@@ -101,7 +109,7 @@ public class CorsVulnController {
 
     @GetMapping("/fixed/data")
     public ResponseEntity<?> dataFixed(HttpServletRequest request, HttpServletResponse response) {
-        String origin = request.getHeader("Origin");
+        String origin = resolveOrigin(request);
         boolean allowed = origin != null && ALLOWED_ORIGINS.contains(origin);
 
         if (allowed) {
@@ -138,7 +146,7 @@ public class CorsVulnController {
             HttpServletRequest request,
             HttpServletResponse response) {
 
-        String origin = request.getHeader("Origin");
+        String origin = resolveOrigin(request);
 
         switch (state) {
             case "vulnerable" -> {

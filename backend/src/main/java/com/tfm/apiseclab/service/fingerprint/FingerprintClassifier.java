@@ -28,6 +28,21 @@ public class FingerprintClassifier {
     }
 
     public FingerprintAnalysis classifyRequest(HttpServletRequest request) {
+        String referer = request.getHeader("Referer");
+        String host = request.getHeader("Host");
+        if (isLabUiRequest(referer, host)) {
+            return new FingerprintAnalysis(
+                "lab-ui",
+                0.95,
+                List.of("Referer apunta a la propia interfaz del laboratorio → uso manual desde el navegador"),
+                Map.of("lab-ui", 0.95),
+                Map.of("referer", referer != null ? referer : ""),
+                Map.of(),
+                Map.of(),
+                false
+            );
+        }
+
         HeaderSignatureAnalyzer.HeaderResult headerResult = headerAnalyzer.analyze(request);
 
         String uaTool = classifyUserAgent(request.getHeader("User-Agent"));
@@ -168,6 +183,16 @@ public class FingerprintClassifier {
         if (ua.contains("wget"))     return "wget";
         if (ua.contains("mozilla"))  return "browser";
         return "desconocido";
+    }
+
+    private boolean isLabUiRequest(String referer, String host) {
+        if (referer == null || referer.isBlank()) return false;
+        if (referer.contains("localhost:5173") || referer.contains("localhost:3000")) return true;
+        if (host != null && !host.isBlank()) {
+            String hostOnly = host.split(":")[0];
+            return referer.contains(hostOnly);
+        }
+        return false;
     }
 
     public HeaderSignatureAnalyzer getHeaderAnalyzer() {
