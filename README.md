@@ -2,22 +2,28 @@
 
 Laboratorio educativo de vulnerabilidades en APIs REST con modelo de tres estados (vulnerable / partial / fixed) y capa de observación con fingerprinting de clientes.
 
-## Arranque rápido (Docker — recomendado)
+## Arranque rápido (Docker)
 
 Requisito: [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y corriendo.
 
 ```bash
-git clone <url-del-repo>
+git clone xxxxxxxxxxxx
 cd api-security-lab
 docker compose up --build
 ```
 
-El primer build tarda ~3-5 minutos (Maven descarga dependencias). Los siguientes arranques son inmediatos.
+El primer build tarda ~3-5 minutos. Los siguientes arranques:
+
+```bash
+docker compose up
+```
 
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8080
 
-El frontend espera automáticamente a que el backend esté listo antes de arrancar.
+```bash
+docker compose down
+```
 
 ### Solo el backend
 
@@ -25,37 +31,45 @@ El frontend espera automáticamente a que el backend esté listo antes de arranc
 docker compose -f docker-compose.backend.yml up --build
 ```
 
-Útil para probar la API con Postman, curl o cualquier cliente externo.
-
 ### Solo el frontend
 
 ```bash
 docker compose -f docker-compose.frontend.yml up --build
 ```
 
-Requiere que el backend esté corriendo en `localhost:8080` (ya sea con `mvn spring-boot:run` o con el compose del backend). El nginx del contenedor redirige `/api/` al host automáticamente.
+## Despliegue en VPS
 
-## Arranque sin Docker (desarrollo local)
+```bash
+git clone xxxxxxxxxxxx
+cd api-security-lab
+docker compose -f docker-compose.prod.yml up --build -d
+```
+
+- Backend: `127.0.0.1:8080`
+- Frontend: `127.0.0.1:4000`
+
+## Arranque sin Docker
 
 Requisitos: Java 21, Maven 3.9+, Node.js 20+
 
 ```bash
-# Terminal 1 — backend
+# Terminal 1
 cd backend
 mvn spring-boot:run
-# → http://localhost:8080
 
-# Terminal 2 — frontend
+# Terminal 2
 cd frontend
 npm install
 npm run dev
-# → http://localhost:5173
 ```
 
-## Catálogo de vulnerabilidades (6/6 implementadas)
+- Backend: http://localhost:8080
+- Frontend: http://localhost:5173
 
-| # | Vulnerabilidad | OWASP API 2023 | OWASP Web 2025 | Bypass del estado partial |
-|---|----------------|----------------|-----------------|---------------------------|
+## Vulnerabilidades (6/6)
+
+| # | Vulnerabilidad | OWASP API 2023 | OWASP Web 2025 | Bypass partial |
+|---|----------------|----------------|-----------------|----------------|
 | 1 | BOLA / IDOR | API1:2023 | A01:2025 | Endpoint de búsqueda sin validación de ownerId |
 | 2 | JWT mal implementado | API2:2023 | A01/A07:2025 | Acepta tokens con alg=none (sin firma) |
 | 3 | CORS mal configurado | API8:2023 | A01/A02:2025 | Validación con contains("localhost") |
@@ -74,9 +88,13 @@ GET /api/bola/{state}/accounts[?ownerId=X]
 ### JWT (#2)
 ```
 POST /api/auth/login                          # body: {"username","password"}
-GET  /api/auth/forge-none/{userId}            # herramienta de ataque
-GET  /api/jwt/{state}/profile                 # header: X-Auth-Token: <token>
+GET  /api/auth/forge-none/{userId}
+GET  /api/auth/forge-weak-key/{userId}
+GET  /api/auth/forge-expired/{userId}
+GET  /api/jwt/{state}/profile                 # header: X-Auth-Token
 ```
+
+`{state}` = `vulnerable` | `partial-alg-none` | `partial-weak-key` | `partial-no-exp` | `fixed`
 
 Usuarios: alicia/password123, roberto/password456, carlos/password789, admin/admin
 
@@ -97,37 +115,27 @@ POST /api/mass-assignment/{state}/profile/{id}/reset
 GET /api/exceptions/{state}/admin/config      # header: X-User-Id
 ```
 
+`{state}` = `vulnerable` | `partial-fail-open` | `partial-info-leak` | `fixed`
+
 ### Prompt Injection (#6)
 ```
 POST /api/prompt-injection/{state}/summarize  # body: {"text": "..."}
 ```
 
-### Monitor (capa de observación)
+### Monitor
 ```
 GET    /api/monitor/events[?vulnerability=X&state=Y]
 GET    /api/monitor/stats
 POST   /api/monitor/events/clear
 ```
 
-### Visor de diffs
+### Diffs y catálogo
 ```
 GET /api/diffs
 GET /api/diffs/{slug}
-```
-
-### Catálogo
-```
 GET /api/vulnerabilities
 GET /api/vulnerabilities/{slug}
 ```
-
-## Modelo de tres estados
-
-`{state}` = vulnerable | partial | fixed
-
-- **vulnerable**: sin protección.
-- **partial**: mitigación parcial con bypass demostrable (aportación central del TFM).
-- **fixed**: mitigación completa.
 
 ## Stack
 
