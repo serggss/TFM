@@ -49,42 +49,59 @@ public class CodeDiffController {
                 """
         ));
 
-        DIFFS.put("jwt", Map.of(
-            "vulnerable", """
+        Map<String, String> jwtDiff = new LinkedHashMap<>();
+        jwtDiff.put("vulnerable", """
                 // Sin verificación de firma
                 String[] parts = token.split("\\\\.");
                 String payload = Base64.decode(parts[1]);
                 Map claims = parseJson(payload);
                 // Acepta CUALQUIER token, firmado o no
-                // El atacante puede crear tokens con claims arbitrarios
-                """,
-            "partial", """
-                // Verifica firma... pero acepta alg=none
+                """);
+        jwtDiff.put("partial-alg-none", """
+                // Verifica firma HS256... pero acepta alg=none
                 Map header = parseJson(Base64.decode(parts[0]));
                 String alg = header.get("alg");
-
                 if ("none".equalsIgnoreCase(alg)) {
-                    // BYPASS: acepta token sin firma
+                    // BYPASS: sin firma aceptado
                     return parseJson(Base64.decode(parts[1]));
                 }
-                // Tokens normales se verifican correctamente
                 return Jwts.parser().verifyWith(KEY).build()
                     .parseSignedClaims(token);
-                """,
-            "fixed", """
-                // Verificación estricta: algoritmo fijo + issuer + expiración
+                """);
+        jwtDiff.put("partial-weak-key", """
+                // Rechaza alg=none — pero clave predecible
+                private static final String SECRET =
+                    "weak-secret-key-please-change-me";
+                private static final SecretKey KEY =
+                    Keys.hmacShaKeyFor(SECRET.getBytes());
+                // La firma se verifica con esta clave
                 Claims claims = Jwts.parser()
-                    .verifyWith(KEY)            // Solo acepta HS256
-                    .requireIssuer("api-sec-lab") // Valida emisor
-                    .build()
-                    .parseSignedClaims(token)   // Rechaza unsigned
-                    .getPayload();
-                // También verifica expiración
-                if (claims.getExpiration().before(new Date())) {
-                    throw new IllegalArgumentException("Token expirado");
+                    .verifyWith(KEY).build()
+                    .parseSignedClaims(token).getPayload();
+                // BYPASS: hashcat -m 16500 token wordlist.txt
+                """);
+        jwtDiff.put("partial-no-exp", """
+                // Clave fuerte — pero captura ExpiredJwtException
+                try {
+                    return Jwts.parser()
+                        .verifyWith(KEY).build()
+                        .parseSignedClaims(token).getPayload();
+                } catch (ExpiredJwtException e) {
+                    // BYPASS: token expirado = aceptado
+                    return e.getClaims();
                 }
-                """
-        ));
+                """);
+        jwtDiff.put("fixed", """
+                // Algoritmo fijo + clave fuerte + issuer + expiración
+                Claims claims = Jwts.parser()
+                    .verifyWith(KEY)
+                    .requireIssuer("api-sec-lab")
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+                // Rechaza alg=none, clave inválida, exp pasado
+                """);
+        DIFFS.put("jwt", jwtDiff);
 
         DIFFS.put("cors", Map.of(
             "vulnerable", """
@@ -158,8 +175,8 @@ public class CodeDiffController {
                 """
         ));
 
-        DIFFS.put("exceptions", Map.of(
-            "vulnerable", """
+        Map<String, String> exceptionsDiff = new LinkedHashMap<>();
+        exceptionsDiff.put("vulnerable", """
                 // Sin autorización + stack traces en errores
                 try {
                     Long userId = Long.parseLong(userIdStr);
@@ -167,15 +184,13 @@ public class CodeDiffController {
                     return Response.status(500).body(Map.of(
                         "error", e.getMessage(),
                         "stackTrace", e.getStackTrace(),  // ← FUGA
-                        "serverInfo", Map.of(
-                            "javaVersion", System.getProperty("java.version"),
-                            "userDir", System.getProperty("user.dir")  // ← FUGA
-                        )
+                        "javaVersion", System.getProperty("java.version"),
+                        "userDir", System.getProperty("user.dir")  // ← FUGA
                     ));
                 }
                 return ResponseEntity.ok(ADMIN_CONFIG); // Sin auth
-                """,
-            "partial", """
+                """);
+        exceptionsDiff.put("partial-fail-open", """
                 // FAIL-OPEN: default es true (debería ser false)
                 boolean isAuthorized = true;  // ← BUG: default abierto
 
@@ -185,15 +200,33 @@ public class CodeDiffController {
                     isAuthorized = "admin".equals(user.getRole());
                 } catch (Exception e) {
                     // isAuthorized sigue siendo true ← BYPASS
-                    // La excepción deja pasar la petición
                 }
 
                 if (!isAuthorized) return 403;
                 return ResponseEntity.ok(ADMIN_CONFIG);
-                """,
-            "fixed", """
-                // FAIL-CLOSED: default es false
-                boolean isAuthorized = false;  // ← CORRECTO
+                """);
+        exceptionsDiff.put("partial-info-leak", """
+                // FAIL-CLOSED: isAuthorized=false ✓
+                // Pero las excepciones filtran información interna
+                boolean isAuthorized = false;
+                try {
+                    Long userId = Long.parseLong(userIdStr);
+                    UserProfile user = userRepo.findById(userId).get();
+                    isAuthorized = "admin".equals(user.getRole());
+                } catch (Exception e) {
+                    return Response.status(500).body(Map.of(
+                        "error", e.getMessage(),          // ← FUGA
+                        "stackTrace", e.getStackTrace(),  // ← FUGA
+                        "javaVersion", System.getProperty("java.version"),
+                        "userDir", System.getProperty("user.dir")  // ← FUGA
+                    ));
+                }
+                if (!isAuthorized) return 403;
+                return ResponseEntity.ok(ADMIN_CONFIG);
+                """);
+        exceptionsDiff.put("fixed", """
+                // FAIL-CLOSED + errores genéricos
+                boolean isAuthorized = false;
 
                 try {
                     Long userId = Long.parseLong(userIdStr);
@@ -201,13 +234,13 @@ public class CodeDiffController {
                     isAuthorized = "admin".equals(user.getRole());
                 } catch (Exception e) {
                     // isAuthorized sigue siendo false ← SEGURO
-                    // Cualquier error = acceso denegado
+                    // Sin detalles internos en la respuesta
                 }
 
                 if (!isAuthorized) return 403;
                 return ResponseEntity.ok(ADMIN_CONFIG);
-                """
-        ));
+                """);
+        DIFFS.put("exceptions", exceptionsDiff);
 
         DIFFS.put("prompt-injection", Map.of(
             "vulnerable", """

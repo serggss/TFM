@@ -9,6 +9,30 @@ const VULN_NAMES = {
   'prompt-injection': 'Inyección de Prompt',
 };
 
+const STATE_LABELS = {
+  'vulnerable': 'Vulnerable',
+  'partial': 'Partial',
+  'partial-alg-none': 'Partial — alg=none',
+  'partial-weak-key': 'Partial — clave débil',
+  'partial-no-exp': 'Partial — sin exp',
+  'partial-fail-open': 'Partial — fail-open',
+  'partial-info-leak': 'Partial — info leak',
+  'fixed': 'Fixed',
+};
+
+const getStateColor = (state) => {
+  if (state === 'vulnerable') return 'var(--color-vulnerable)';
+  if (state === 'fixed') return 'var(--color-fixed)';
+  return 'var(--color-partial)';
+};
+
+const sortStates = (keys) => {
+  return [...keys].sort((a, b) => {
+    const order = k => k === 'vulnerable' ? 0 : k === 'fixed' ? 100 : 50;
+    return order(a) - order(b);
+  });
+};
+
 function DiffViewerPage() {
   const [diffs, setDiffs] = useState([]);
   const [selected, setSelected] = useState('bola');
@@ -22,12 +46,6 @@ function DiffViewerPage() {
   }, []);
 
   const currentDiff = diffs.find(d => d.slug === selected);
-
-  const stateColors = {
-    vulnerable: 'var(--color-vulnerable)',
-    partial: 'var(--color-partial)',
-    fixed: 'var(--color-fixed)',
-  };
 
   if (loading) return <p className="text-muted">Cargando código...</p>;
 
@@ -55,41 +73,55 @@ function DiffViewerPage() {
         ))}
       </div>
 
-      {currentDiff && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
-          {['vulnerable', 'partial', 'fixed'].map(state => (
-            <div key={state} style={{
-              borderRadius: '8px', overflow: 'hidden',
-              border: `1px solid ${stateColors[state]}33`,
+      {currentDiff && (() => {
+        const stateKeys = sortStates(Object.keys(currentDiff.states));
+        return (
+          <div style={{ overflowX: 'auto' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${stateKeys.length}, minmax(240px, 1fr))`,
+              gap: '0.75rem',
+              minWidth: stateKeys.length > 3 ? `${stateKeys.length * 250}px` : 'auto',
             }}>
-              <div style={{
-                padding: '0.6rem 1rem',
-                backgroundColor: `${stateColors[state]}15`,
-                borderBottom: `2px solid ${stateColors[state]}`,
-                color: stateColors[state],
-                fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase',
-              }}>
-                {state}
-              </div>
-              <pre style={{
-                padding: '1rem', margin: 0,
-                backgroundColor: 'var(--bg-primary)',
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.78rem',
-                lineHeight: 1.6,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                minHeight: '200px',
-                maxHeight: '500px',
-                overflowY: 'auto',
-              }}>
-                {currentDiff.states[state]}
-              </pre>
+              {stateKeys.map(state => {
+                const color = getStateColor(state);
+                return (
+                  <div key={state} style={{
+                    borderRadius: '8px', overflow: 'hidden',
+                    border: `1px solid ${color}33`,
+                  }}>
+                    <div style={{
+                      padding: '0.6rem 1rem',
+                      backgroundColor: `${color}15`,
+                      borderBottom: `2px solid ${color}`,
+                      color,
+                      fontWeight: 700, fontSize: '0.9rem',
+                      textTransform: state === 'vulnerable' || state === 'fixed' || state === 'partial' ? 'uppercase' : 'none',
+                    }}>
+                      {STATE_LABELS[state] || state}
+                    </div>
+                    <pre style={{
+                      padding: '1rem', margin: 0,
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.78rem',
+                      lineHeight: 1.6,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      minHeight: '200px',
+                      maxHeight: '500px',
+                      overflowY: 'auto',
+                    }}>
+                      {currentDiff.states[state]}
+                    </pre>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
